@@ -1,0 +1,88 @@
+program::=
+    decl_var_stmt program
+    | decl_func_stmt program
+    | /* empty */
+
+decl_var_stmt::=
+    TYPE ID ';'
+    | 'const' TYPE ID ';'
+    | TYPE assign_stmt
+    | 'const' TYPE assign_stmt
+
+assign_stmt::=
+    ID '=' expr ';'
+
+decl_func_stmt::=
+    TYPE ID '(' params ')' block
+    TYPE ID '(' params ')' ';'
+
+params::=
+    TYPE ID ',' params
+    | /* empty */
+
+block::=
+    '{' stmts '}'
+
+stmts::=
+    stmt stmts
+    | /* empty */
+
+stmt::=
+    decl_var_stmt
+    | assign_stmt
+    | if_stmt
+    | while_stmt
+    | for_stmt
+    | call_func_stmt
+    | return_stmt
+
+if_stmt::=
+    'if' '(' expr ')' block else_stmt
+
+else_stmt::=
+    'else' block
+    | /* empty */
+
+while_stmt::=
+    'while' '(' expr ')' block
+
+for_stmt::=
+    'for' '(' expr ';' expr ';' expr ')' block
+
+call_func_stmt::=
+    call_func_expr ';'
+
+args::=
+    expr ',' args
+    | /* empty */
+
+return_stmt::=
+    'return' expr ';'
+
+expr::=
+    ID
+    | LITERAL
+    | '(' expr ')'
+    | arithm_expr
+    | logic_expr
+    | cast_expr
+    | call_func_expr
+
+arithm_expr::=
+    expr '+' expr
+    | expr '-' expr
+    | expr '*' expr
+    | expr '/' expr
+    | expr '%' expr
+    | '-' expr /* unary minus */
+
+logic_expr::=
+    expr '&&' expr
+    | expr '||' expr
+    | '!' expr
+
+cast_expr::=
+    '(' TYPE ')' expr
+
+call_func_expr::=
+    ID '(' args ')'
