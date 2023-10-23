@@ -4,24 +4,24 @@ program::=
     | /* empty */
 
 decl_var_stmt::=
-    TYPE ID ';'
-    | 'const' TYPE ID ';'
+    TYPE ID SEMICOLON
+    | CONSTANT TYPE ID SEMICOLON
     | TYPE assign_stmt
-    | 'const' TYPE assign_stmt
+    | CONSTANT TYPE assign_stmt
 
 assign_stmt::=
-    ID '=' expr ';'
+    ID ASSIGN_OP expr SEMICOLON
 
 decl_func_stmt::=
-    TYPE ID '(' params ')' block
-    TYPE ID '(' params ')' ';'
+    TYPE ID L_BRACKET params R_BRACKET block
+    TYPE ID L_BRACKET params R_BRACKET SEMICOLON
 
 params::=
-    TYPE ID ',' params
+    TYPE ID COMMA params
     | /* empty */
 
 block::=
-    '{' stmts '}'
+    BEGIN_BLOCK stmts END_BLOCK
 
 stmts::=
     stmt stmts
@@ -37,52 +37,75 @@ stmt::=
     | return_stmt
 
 if_stmt::=
-    'if' '(' expr ')' block else_stmt
+    IF L_BRACKET expr R_BRACKET block else_stmt
 
 else_stmt::=
-    'else' block
+    ELSE block
     | /* empty */
 
 while_stmt::=
-    'while' '(' expr ')' block
+    WHILE L_BRACKET expr R_BRACKET block
 
 for_stmt::=
-    'for' '(' expr ';' expr ';' expr ')' block
+    FOR L_BRACKET expr SEMICOLON expr SEMICOLON expr R_BRACKET block
 
 call_func_stmt::=
-    call_func_expr ';'
+    call_func_expr SEMICOLON
 
 args::=
-    expr ',' args
+    expr COMMA args
     | /* empty */
 
 return_stmt::=
-    'return' expr ';'
+    RETURN expr SEMICOLON
 
 expr::=
     ID
     | LITERAL
-    | '(' expr ')'
+    | L_BRACKET expr R_BRACKET
     | arithm_expr
     | logic_expr
     | cast_expr
     | call_func_expr
 
 arithm_expr::=
-    expr '+' expr
-    | expr '-' expr
-    | expr '*' expr
-    | expr '/' expr
-    | expr '%' expr
-    | '-' expr /* unary minus */
+    expr SUM expr
+    | expr SUB expr
+    | expr MUL expr
+    | expr DIV expr
+    | expr MOD expr
+    | U_MINUS expr /* unary minus */
 
 logic_expr::=
-    expr '&&' expr
-    | expr '||' expr
-    | '!' expr
+    expr AND expr
+    | expr OR expr
+    | NOT expr
 
 cast_expr::=
-    '(' TYPE ')' expr
+    L_BRACKET TYPE R_BRACKET expr
 
 call_func_expr::=
-    ID '(' args ')'
+    ID L_BRACKET args R_BRACKET
+
+SEMICOLON::= ';'
+CONSTANT::= 'const'
+ASSIGN_OP::= '='
+L_BRACKET::= '('
+R_BRACKET::= ')'
+COMMA::= ','
+BEGIN_BLOCK::= '{'
+END_BLOCK::= '}'
+IF::= 'if'
+ELSE::= 'else'
+WHILE::= 'while'
+FOR::= 'for'
+RETURN::= 'return'
+SUM::= '+'
+SUB::= '-'
+MUL::= '*'
+DIV::= '/'
+MOD::= '%'
+U_MINUS::= '-'
+AND::= '&&'
+OR::= '||'
+NOT::= '!'
