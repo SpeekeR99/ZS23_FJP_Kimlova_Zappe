@@ -14,7 +14,7 @@ assign_stmt::=
 
 decl_func_stmt::=
     TYPE ID L_BRACKET params R_BRACKET block
-    TYPE ID L_BRACKET params R_BRACKET SEMICOLON
+    | TYPE ID L_BRACKET params R_BRACKET SEMICOLON
 
 params::=
     params_list
