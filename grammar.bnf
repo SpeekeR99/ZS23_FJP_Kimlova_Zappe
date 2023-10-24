@@ -17,8 +17,12 @@ decl_func_stmt::=
     TYPE ID L_BRACKET params R_BRACKET SEMICOLON
 
 params::=
-    TYPE ID COMMA params
+    params_list
     | /* empty */
+
+params_list::=
+    TYPE ID COMMA params_list
+    | TYPE ID
 
 block::=
     BEGIN_BLOCK stmts END_BLOCK
@@ -52,10 +56,6 @@ for_stmt::=
 call_func_stmt::=
     call_func_expr SEMICOLON
 
-args::=
-    expr COMMA args
-    | /* empty */
-
 return_stmt::=
     RETURN expr SEMICOLON
 
@@ -65,6 +65,7 @@ expr::=
     | L_BRACKET expr R_BRACKET
     | arithm_expr
     | logic_expr
+    | compare_expr
     | cast_expr
     | call_func_expr
 
@@ -81,11 +82,27 @@ logic_expr::=
     | expr OR expr
     | NOT expr
 
+compare_expr::=
+    expr EQ expr
+    | expr NEQ expr
+    | expr LESS expr
+    | expr LESSEQ expr
+    | expr GRT expr
+    | expr GRTEQ expr
+
 cast_expr::=
     L_BRACKET TYPE R_BRACKET expr
 
 call_func_expr::=
     ID L_BRACKET args R_BRACKET
+
+args::=
+    args_list
+    | /* empty */
+
+args_list::=
+    expr COMMA args_list
+    | expr
 
 SEMICOLON::= ';'
 CONSTANT::= 'const'
@@ -109,3 +126,9 @@ U_MINUS::= '-'
 AND::= '&&'
 OR::= '||'
 NOT::= '!'
+EQ::= '=='
+NEQ::= '!='
+LESS::= '<'
+LESSEQ::= '<='
+GRT::= '>'
+GRTEQ::= '>='
