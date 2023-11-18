@@ -1,15 +1,38 @@
 %{
- #include <stdio.h>
- #include <stdlib.h>
- #define YYSTYPE int
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <string.h>
 
- int yyerror(char *s);
- int yywrap(void);
- int yylex();
+    int yyerror(char *s);
+    int yywrap(void);
+    int yylex();
 %}
-%token TYPE ID LITERAL SEMICOLON CONSTANT ASSIGN_OP L_BRACKET R_BRACKET COMMA BEGIN_BLOCK END_BLOCK IF ELSE WHILE FOR RETURN SUM SUB MUL DIV MOD U_MINUS AND OR NOT EQ NEQ LESS LESSEQ GRT GRTEQ
+
+%locations
+%define api.pure
+%union {
+    int number;
+    char *string;
+}
+
+%left TYPE ID LITERAL CONSTANT BEGIN_BLOCK END_BLOCK
+
+%left IF ELSE FOR WHILE RETURN
+%left AND OR NOT
+%left EQ NEQ LESS LESSEQ GRT GRTEQ
+
+%left SEMICOLON COMMA L_BRACKET R_BRACKET
+
+%right ASSIGN_OP
+
+%left ADD SUB
+%left MUL DIV MOD
+%left U_MINUS
+
 %start program
+
 %%
+
 program:
     decl_var_stmt program { printf("decl_var_stmt\n"); }
     | decl_func_stmt program { printf("decl_func_stmt\n"); }
@@ -82,12 +105,12 @@ expr:
     | call_func_expr { printf("expr: call_func_expr \n");}
 
 arithm_expr:
-    expr SUM expr { printf("arithm_expr: expr sum expr \n");}
+    expr ADD expr { printf("arithm_expr: expr add expr \n");}
     | expr SUB expr { printf("arithm_expr: expr sub expr \n");}
     | expr MUL expr { printf("arithm_expr: expr mul expr \n");}
     | expr DIV expr { printf("arithm_expr: expr div expr \n");}
     | expr MOD expr { printf("arithm_expr: expr mod expr \n");}
-    | U_MINUS expr /* unary minus */ { printf("arithm_expr: u_minus expr \n");}
+    | SUB expr %prec U_MINUS { printf("arithm_expr: u_minus expr \n");}
 
 logic_expr:
     expr AND expr { printf("logic_expr: expr and expr \n");}
@@ -117,15 +140,16 @@ args_list:
     | expr { printf("args_list: expr \n");}
 
 %%
+
 int main(int argc, char **argv) {
-  yyparse();
-  return 0;
+    yyparse();
+    return 0;
 }
 
 int yyerror(char *s) {
-  printf("error: %s\n", s);
+    printf("error: %s\n", s);
 }
 
 int yywrap(void) {
-  return 1;
+    return 1;
 }
