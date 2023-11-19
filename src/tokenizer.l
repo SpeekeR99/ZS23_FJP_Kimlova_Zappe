@@ -1,13 +1,9 @@
 %{
-
-#include <stdlib.h>
-#include <stdio.h>
-
-#include "grammar.tab.h"
-
+    #include "parser.tab.h"
 %}
 
 %option bison-bridge bison-locations
+%option noyywrap
 
 type        (int|bool|void)
 id          ([a-z_][a-zA-Z0-9_]*)

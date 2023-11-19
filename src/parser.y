@@ -1,12 +1,11 @@
 %{
-    #include <stdio.h>
-    #include <stdlib.h>
-    #include <string.h>
-
-    int yyerror(char *s);
-    int yywrap(void);
-    int yylex();
+    #include <iostream>
 %}
+
+%code provides {
+  int yyerror(const char *s);
+  int yylex(YYSTYPE*, YYLTYPE*);
+}
 
 %locations
 %define api.pure
@@ -15,9 +14,9 @@
     char *string;
 }
 
-%left TYPE ID LITERAL CONSTANT BEGIN_BLOCK END_BLOCK
+%nonassoc  TYPE ID LITERAL CONSTANT BEGIN_BLOCK END_BLOCK
 
-%left IF ELSE FOR WHILE RETURN
+%nonassoc  IF ELSE FOR WHILE RETURN
 %left AND OR NOT
 %left EQ NEQ LESS LESSEQ GRT GRTEQ
 
@@ -143,13 +142,10 @@ args_list:
 
 int main(int argc, char **argv) {
     yyparse();
+    return EXIT_SUCCESS;
+}
+
+int yyerror(const char *s) {
+    std::cout << "Error: " << std::string(s) << std::endl;
     return 0;
-}
-
-int yyerror(char *s) {
-    printf("error: %s\n", s);
-}
-
-int yywrap(void) {
-    return 1;
 }
