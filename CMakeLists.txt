@@ -22,6 +22,8 @@ add_executable(
         src/main.cpp
         src/SymbolTable.cpp
         src/SymbolTable.h
+        src/InstructionsGenerator.cpp
+        src/InstructionsGenerator.h
         ${LEXER_H_OUT}
         ${LEXER_OUT}
         ${PARSER_H_OUT}

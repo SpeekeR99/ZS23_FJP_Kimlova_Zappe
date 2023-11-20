@@ -60,8 +60,9 @@ public:
     void remove_scope();
     void insert_symbol(const std::string &name, SymbolType symbol_type, ValueType type, bool is_const);
     void insert_symbol(const std::string &name, SymbolType symbol_type, const std::string &type, bool is_const);
-    SymbolTableRecord &get_symbol(const std::string &name);
-    ScopeSymbolTable &get_scope(uint32_t index);
+    [[nodiscard]] SymbolTableRecord &get_symbol(const std::string &name, uint32_t *level);
+    [[nodiscard]] ScopeSymbolTable &get_scope(uint32_t index);
+    [[nodiscard]] uint32_t get_number_of_variables() const;
 
     friend std::ostream &operator<<(std::ostream &os, const SymbolTable &table);
 };

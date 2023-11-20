@@ -1,19 +1,13 @@
-int ahoj;
+int ahoj = 5;
 int cau;
-const int pi = 3;
-int i = 10;
-
-int func() {
-
-}
-
-int test();
 
 int main() {
-    ahoj = 69;
-    cau = ahoj;
-}
-
-int test() {
-
+    int asdf = 1;
+    int hhjkl;
+    void ljlkjlkjlj;
+    bool jlkj;
+    ahoj = asdf;
+    cau = 3;
+    asdf = cau;
+    return;
 }

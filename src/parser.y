@@ -1,7 +1,9 @@
 %{
     #include "SymbolTable.h"
+    #include "InstructionsGenerator.h"
 
     SymbolTable global_symbol_table;
+    InstructionsGenerator global_instructions_generator;
 %}
 
 %code provides {
@@ -61,30 +63,45 @@ decl_var_stmt:
     }
     | TYPE ID ASSIGN_OP expr SEMICOLON {
         global_symbol_table.insert_symbol($2, VARIABLE, $1, false);
+        uint32_t level = 0;
+        auto address = global_symbol_table.get_symbol($2, &level).address;
+        global_instructions_generator.generate(STO, level, address);
         free($1);
         free($2);
     }
     | CONSTANT TYPE ID ASSIGN_OP expr SEMICOLON {
         global_symbol_table.insert_symbol($3, VARIABLE, $2, true);
+        uint32_t level = 0;
+        auto address = global_symbol_table.get_symbol($3, &level).address;
+        global_instructions_generator.generate(STO, level, address);
         free($2);
         free($3);
     }
 
 assign_stmt:
     ID ASSIGN_OP expr SEMICOLON {
-        printf("assign_stmt: id assign_op expr semicolon \n");
+        uint32_t level = 0;
+        auto address = global_symbol_table.get_symbol($1, &level).address;
+        global_instructions_generator.generate(STO, level, address);
         free($1);
     }
 
 decl_func_stmt:
-    TYPE ID L_BRACKET params R_BRACKET block {
-        auto &symbol = global_symbol_table.get_symbol($2);
+    TYPE ID L_BRACKET params R_BRACKET {
+        uint32_t level = 0;
+        auto &symbol = global_symbol_table.get_symbol($2, &level);
         if (symbol.name == "")
             global_symbol_table.insert_symbol($2, FUNCTION, $1, false);
         else
             symbol.address = 50; /* TODO: tohle je jenom pro testovani */
+        level = 0;
+        auto &func_symbol = global_symbol_table.get_symbol($2, &level);
+        global_instructions_generator.generate(CAL, level, func_symbol.address);
         free($1);
         free($2);
+    }
+    block {
+
     }
     | TYPE ID L_BRACKET params R_BRACKET SEMICOLON {
         global_symbol_table.insert_symbol($2, FUNCTION, $1, false);
@@ -113,8 +130,17 @@ params_list:
     }
 
 block:
-    BEGIN_BLOCK stmts END_BLOCK {
-        printf("block: begin_block stmts end_block \n");
+    BEGIN_BLOCK {
+        auto number_of_variables = global_symbol_table.get_number_of_variables();
+        global_symbol_table.insert_scope(0, 3);
+        global_instructions_generator.generate(INT, 0, 0);
+    }
+    stmts END_BLOCK {
+        auto number_of_variables = global_symbol_table.get_number_of_variables();
+        int last_int_idx = global_instructions_generator.get_last_int_index();
+        auto &last_int_instr = global_instructions_generator.get_instruction(last_int_idx);
+        last_int_instr.parameter = number_of_variables + 3;
+        global_symbol_table.remove_scope();
     }
 
 stmts:
@@ -127,13 +153,13 @@ stmts:
 
 stmt:
     SEMICOLON {
-        printf("stmt: empty stmt = only semicolon \n");
+        ;
     }
     | decl_var_stmt {
-        printf("stmt: decl_var_stmt \n");
+        ;
     }
     | assign_stmt {
-        printf("stmt: assign_stmt \n");
+        ;
     }
     | if_stmt {
         printf("stmt: if_stmt \n");
@@ -181,85 +207,95 @@ call_func_stmt:
 
 return_stmt:
     RETURN expr SEMICOLON {
-        printf("return_stmt: return expr semicolon \n");
+        global_instructions_generator.generate(RET, 0, 0);
+    }
+    | RETURN SEMICOLON {
+        global_instructions_generator.generate(RET, 0, 0);
     }
 
 expr:
     ID {
-        printf("expr: id \n");
+        uint32_t level = 0;
+        auto address = global_symbol_table.get_symbol($1, &level).address;
+        global_instructions_generator.generate(LOD, level, address);
         free($1);
     }
     | LITERAL {
-        printf("expr: literal \n");
+        global_instructions_generator.generate(LIT, 0, $1);
     }
     | L_BRACKET expr R_BRACKET {
-        printf("expr: l_bracket expr r_bracket \n");
+        ; /* Empty */
     }
     | arithm_expr {
-        printf("expr: arithm_expr \n");
+        ; /* Empty */
     }
     | logic_expr {
-        printf("expr: logic_expr \n");
+        ; /* Empty */
     }
     | compare_expr {
-        printf("expr: compare_expr \n");
+        ; /* Empty */
     }
     | cast_expr {
-        printf("expr: cast_expr \n");
+        ;
     }
     | call_func_expr {
-        printf("expr: call_func_expr \n");
+        ;
     }
 
 arithm_expr:
     expr ADD expr {
-        printf("arithm_expr: expr add expr \n");
+        global_instructions_generator.generate(OPR, 0, PL0_ADD);
     }
     | expr SUB expr {
-        printf("arithm_expr: expr sub expr \n");
+        global_instructions_generator.generate(OPR, 0, PL0_SUB);
     }
     | expr MUL expr {
-        printf("arithm_expr: expr mul expr \n");
+        global_instructions_generator.generate(OPR, 0, PL0_MUL);
     }
     | expr DIV expr {
-        printf("arithm_expr: expr div expr \n");
+        global_instructions_generator.generate(OPR, 0, PL0_DIV);
     }
     | expr MOD expr {
-        printf("arithm_expr: expr mod expr \n");
+        global_instructions_generator.generate(OPR, 0, PL0_MOD);
     }
     | SUB expr %prec U_MINUS {
-        printf("arithm_expr: u_minus expr \n");
+        global_instructions_generator.generate(OPR, 0, PL0_NEG);
     }
 
 logic_expr:
     expr AND expr {
-        printf("logic_expr: expr and expr \n");
+        global_instructions_generator.generate(OPR, 0, PL0_ADD);
+        global_instructions_generator.generate(LIT, 0, 2);
+        global_instructions_generator.generate(OPR, 0, PL0_EQ);
     }
     | expr OR expr {
-        printf("logic_expr: expr or expr \n");
+        global_instructions_generator.generate(OPR, 0, PL0_ADD);
+        global_instructions_generator.generate(LIT, 0, 0);
+        global_instructions_generator.generate(OPR, 0, PL0_NEQ);
     }
     | NOT expr {
-        printf("logic_expr: not expr \n");
+        global_instructions_generator.generate(LIT, 0, 0);
+        global_instructions_generator.generate(OPR, 0, PL0_EQ);
     }
 
 compare_expr:
     expr EQ expr {
-        printf("compare_expr: expr eq expr \n");
+        global_instructions_generator.generate(OPR, 0, PL0_EQ);
     }
     | expr NEQ expr {
-        printf("compare_expr: expr neq expr \n");
+        global_instructions_generator.generate(OPR, 0, PL0_NEQ);
     }
     | expr LESS expr {
-        printf("compare_expr: expr less expr \n");
+        global_instructions_generator.generate(OPR, 0, PL0_LT);
     }
     | expr LESSEQ expr {
-        printf("compare_expr: expr lesseq expr \n");
+        global_instructions_generator.generate(OPR, 0, PL0_LEQ);
     }
     | expr GRT expr {
-        printf("compare_expr: expr grt expr \n");
+        global_instructions_generator.generate(OPR, 0, PL0_GRT);
     }
     | expr GRTEQ expr {
-        printf("compare_expr: expr grteq expr \n");
+        global_instructions_generator.generate(OPR, 0, PL0_GEQ);
     }
 
 cast_expr:

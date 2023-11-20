@@ -82,16 +82,25 @@ void SymbolTable::insert_symbol(const std::string &name, SymbolType symbol_type,
     this->insert_symbol(name, symbol_type, str_to_val_type(type), is_const);
 }
 
-SymbolTableRecord &SymbolTable::get_symbol(const std::string &name) {
+SymbolTableRecord &SymbolTable::get_symbol(const std::string &name, uint32_t *level) {
     for (auto &it : std::ranges::reverse_view(this->table)) {
         if (it.exists(name))
             return it.get(name);
+        (*level)++;
     }
     return undefined_record;
 }
 
 ScopeSymbolTable &SymbolTable::get_scope(uint32_t index) {
     return this->table[index];
+}
+
+uint32_t SymbolTable::get_number_of_variables() const {
+    uint32_t number_of_variables = 0;
+    for (const auto & [key, value] : this->table.back().get_table())
+        if (value.symbol_type == VARIABLE)
+            number_of_variables++;
+    return number_of_variables;
 }
 
 std::ostream &operator<<(std::ostream &os, const SymbolTable &table) {
