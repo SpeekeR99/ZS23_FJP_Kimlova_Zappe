@@ -66,7 +66,8 @@ stmts:
     | /* empty */ { printf("stmts: empty \n"); }
 
 stmt:
-    decl_var_stmt { printf("stmt: decl_var_stmt \n"); }
+    SEMICOLON { printf("stmt: empty stmt = only semicolon \n"); }
+    | decl_var_stmt { printf("stmt: decl_var_stmt \n"); }
     | assign_stmt { printf("stmt: assign_stmt \n"); }
     | if_stmt { printf("stmt: if_stmt \n");}
     | while_stmt { printf("stmt: while_stmt \n");}
@@ -139,11 +140,6 @@ args_list:
     | expr { printf("args_list: expr \n");}
 
 %%
-
-int main(int argc, char **argv) {
-    yyparse();
-    return EXIT_SUCCESS;
-}
 
 int yyerror(const char *s) {
     std::cout << "Error: " << std::string(s) << std::endl;
