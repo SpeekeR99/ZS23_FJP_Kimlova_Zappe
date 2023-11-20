@@ -1,5 +1,7 @@
 %{
-    #include <iostream>
+    #include "SymbolTable.h"
+
+    SymbolTable global_symbol_table;
 %}
 
 %code provides {
@@ -14,9 +16,9 @@
     char *string;
 }
 
-%nonassoc  TYPE ID LITERAL CONSTANT BEGIN_BLOCK END_BLOCK
+%nonassoc TYPE ID LITERAL CONSTANT BEGIN_BLOCK END_BLOCK
 
-%nonassoc  IF ELSE FOR WHILE RETURN
+%nonassoc IF ELSE FOR WHILE RETURN
 %left AND OR NOT
 %left EQ NEQ LESS LESSEQ GRT GRTEQ
 
@@ -30,6 +32,8 @@
 
 %start program
 
+%type <string> ID
+
 %%
 
 program:
@@ -38,7 +42,7 @@ program:
     | /* empty */ { printf("empty\n"); }
 
 decl_var_stmt:
-    TYPE ID SEMICOLON { printf("decl_var_stmt: type id \n"); }
+    TYPE ID SEMICOLON { printf("decl_var_stmt: type id \n"); global_symbol_table.insert_symbol($2, VARIABLE, VOID); }
     | CONSTANT TYPE ID SEMICOLON { printf("decl_var_stmt: constant type id \n"); }
     | TYPE assign_stmt { printf("decl_var_stmt: type assign_stmt \n"); }
     | CONSTANT TYPE assign_stmt { printf("decl_var_stmt: constant type assign_stmt \n"); }

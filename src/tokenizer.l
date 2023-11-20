@@ -1,5 +1,5 @@
 %{
-    #include "parser.h"
+    #include "Parser.h"
 %}
 
 %option bison-bridge bison-locations
