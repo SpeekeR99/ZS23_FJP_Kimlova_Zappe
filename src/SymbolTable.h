@@ -4,6 +4,7 @@
 #include <vector>
 #include <map>
 #include <string>
+#include <ranges>
 
 enum ValueType {
     VOID,
@@ -20,6 +21,7 @@ typedef struct SymbolTableRecord {
     std::string name;
     SymbolType symbol_type;
     ValueType type;
+    bool is_const;
     std::uint32_t address;
 } SymbolTableRecord;
 
@@ -33,9 +35,10 @@ public:
     ScopeSymbolTable(uint32_t address_base, uint32_t address_offset);
     ~ScopeSymbolTable();
 
-    void insert(const std::string &name, SymbolType symbol_type, ValueType type);
+    void insert(const std::string &name, SymbolType symbol_type, ValueType type, bool is_const);
+    void insert(const std::string &name, SymbolType symbol_type, const std::string &type, bool is_const);
     bool exists(const std::string &name);
-    SymbolTableRecord get(const std::string &name);
+    SymbolTableRecord &get(const std::string &name);
 
     [[nodiscard]] std::map<std::string, SymbolTableRecord> &get_table() const;
     [[nodiscard]] std::uint32_t get_address_offset() const;
@@ -55,8 +58,9 @@ public:
 
     void insert_scope(uint32_t address_base, uint32_t address_offset);
     void remove_scope();
-    void insert_symbol(const std::string &name, SymbolType symbol_type, ValueType type);
-    SymbolTableRecord get_symbol(const std::string &name);
+    void insert_symbol(const std::string &name, SymbolType symbol_type, ValueType type, bool is_const);
+    void insert_symbol(const std::string &name, SymbolType symbol_type, const std::string &type, bool is_const);
+    SymbolTableRecord &get_symbol(const std::string &name);
     ScopeSymbolTable &get_scope(uint32_t index);
 
     friend std::ostream &operator<<(std::ostream &os, const SymbolTable &table);

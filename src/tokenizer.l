@@ -1,4 +1,5 @@
 %{
+    #include <string>
     #include "Parser.h"
 %}
 
@@ -11,7 +12,7 @@ literal     (([0-9])+)
 
 %%
 
-{type}      { yylval->string = yytext; return TYPE; }
+{type}      { yylval->string = strdup(yytext); return TYPE; }
 {literal}   { yylval->number = atoi(yytext); return LITERAL; }
 ;           { return SEMICOLON; }
 const       { return CONSTANT; }
@@ -41,6 +42,6 @@ return      { return RETURN; }
 \>          { return GRT; }
 \>=         { return GRTEQ; }
 [ \t\n]+    ;
-{id}        { yylval->string = yytext; return ID; }
+{id}        { yylval->string = strdup(yytext); return ID; }
 
 %%

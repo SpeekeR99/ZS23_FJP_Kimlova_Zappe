@@ -32,7 +32,8 @@
 
 %start program
 
-%type <string> ID
+%type <string> ID TYPE
+%type <number> LITERAL expr
 
 %%
 
@@ -42,17 +43,17 @@ program:
     | /* empty */ { printf("empty\n"); }
 
 decl_var_stmt:
-    TYPE ID SEMICOLON { printf("decl_var_stmt: type id \n"); global_symbol_table.insert_symbol($2, VARIABLE, VOID); }
-    | CONSTANT TYPE ID SEMICOLON { printf("decl_var_stmt: constant type id \n"); }
-    | TYPE assign_stmt { printf("decl_var_stmt: type assign_stmt \n"); }
-    | CONSTANT TYPE assign_stmt { printf("decl_var_stmt: constant type assign_stmt \n"); }
+    TYPE ID SEMICOLON { global_symbol_table.insert_symbol($2, VARIABLE, $1, false); free($2); free($1); }
+    | CONSTANT TYPE ID SEMICOLON { global_symbol_table.insert_symbol($3, VARIABLE, $2, true); free($3); free($2); }
+    | TYPE ID ASSIGN_OP expr SEMICOLON { global_symbol_table.insert_symbol($2, VARIABLE, $1, false); free($2); free($1); }
+    | CONSTANT TYPE ID ASSIGN_OP expr SEMICOLON { global_symbol_table.insert_symbol($3, VARIABLE, $2, true); free($3); free($2); }
 
 assign_stmt:
-    ID ASSIGN_OP expr SEMICOLON { printf("assign_stmt: id assign_op expr \n"); }
+    ID ASSIGN_OP expr SEMICOLON { printf("assign_stmt: id assign_op expr semicolon \n"); }
 
 decl_func_stmt:
-    TYPE ID L_BRACKET params R_BRACKET block { printf("decl_func_stmt: type id l_bracket params r_bracket block \n"); }
-    | TYPE ID L_BRACKET params R_BRACKET SEMICOLON { printf("decl_func_stmt: type id l_bracket params r_bracket semicolon \n"); }
+    TYPE ID L_BRACKET params R_BRACKET block { auto &symbol = global_symbol_table.get_symbol($2); if (symbol.name == "") global_symbol_table.insert_symbol($2, FUNCTION, $1, false); else symbol.address = 50; free($2); free($1); }
+    | TYPE ID L_BRACKET params R_BRACKET SEMICOLON { global_symbol_table.insert_symbol($2, FUNCTION, $1, false); free($2); free($1); }
 
 params:
     params_list { printf("params: params_list \n"); }

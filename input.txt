@@ -1,2 +1,19 @@
 int ahoj;
 int cau;
+const int pi = 3;
+int i = 10;
+
+int func() {
+
+}
+
+int test();
+
+int main() {
+    ahoj = 69;
+    cau = ahoj;
+}
+
+int test() {
+
+}
