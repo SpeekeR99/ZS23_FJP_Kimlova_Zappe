@@ -181,6 +181,9 @@ stmt:
     SEMICOLON {
         ; /* Empty */
     }
+    | decl_func_stmt {
+        ; /* Empty */
+    }
     | decl_var_stmt {
         ; /* Empty */
     }
