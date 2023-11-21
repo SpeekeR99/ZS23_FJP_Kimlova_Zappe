@@ -1,0 +1,45 @@
+Zakladni funkcionalita (10b celkem):
+  1 Definice celociselnych promennych                                       (DONE)
+  2 Definice celociselnych konstant                                         (DONE)
+  3 Prirazeni                                                               (DONE)
+  4 Zakladni aritmetika                                                     (DONE)
+  5 Libovolny cyklus                                                        (NOT IMPLEMENTED)
+  6 If bez else vetve                                                       (NOT IMPLEMENTED)
+  7 Definice podprogramu a volani                                           (DONE)
+
+Jednoducha rozsireni (1b kazde):
+  1 Kazdy dalsi typ cyklu                                                   (NOT IMPLEMENTED)
+  2 Else vetev                                                              (NOT IMPLEMENTED)
+  3 Datovy typ boolean + operace s nim                                      (KINDA DONE)
+  4 Datovy typ real + operace s nim                                         (NOT IMPLEMENTED)
+  5 Datovy typ string + operace s nim                                       (NOT IMPLEMENTED)
+  6 Rozvetvena podminka (switch, case)                                      (NOT IMPLEMENTED)
+  7 Nasobne prirazeni                                                       (NOT IMPLEMENTED)
+  8 Podminene prirazeni (ternarni operator)                                 (NOT IMPLEMENTED)
+  9 Paralelni prirazeni                                                     (NOT IMPLEMENTED)
+ 10 Prikazy pro vstup a vystup                                              (NOT IMPLEMENTED)
+
+Slozitejsi rozsireni (2b kazde):
+  1 Prikaz GOTO                                                             (NOT IMPLEMENTED)
+  2 Datovy typ ratio + operace s nim                                        (NOT IMPLEMENTED)
+  3 Slozeny datovy typ (struct, record)                                     (NOT IMPLEMENTED)
+  4 Pole a prace s jeho prvky                                               (NOT IMPLEMENTED)
+  5 Operator pro porovnani stringu                                          (NOT IMPLEMENTED)
+  6 Parametry predavane hodnotou                                            (NOT IMPLEMENTED)
+  7 Navratova hodnota podprogramu                                           (NOT IMPLEMENTED)
+  8 Objekty bez polymorfismu                                                (NOT IMPLEMENTED)
+  9 Anonymni vnitrni funkce                                                 (DONE)
+
+Rozsireni vyzadujici slozitejsi instrukcni sadu nez ma PL/0 (3b kazde):
+  1 Dynamicky prirazovana pamet + pointery                                  (NOT IMPLEMENTED)
+  2 Parametry predavane odkazem                                             (NOT IMPLEMENTED)
+  3 Objektove konstrukce s polymorfismem                                    (NOT IMPLEMENTED)
+  4 Instanceof operator                                                     (NOT IMPLEMENTED)
+  5 Anonymni vnitrni funkce jako parametry                                  (NOT IMPLEMENTED)
+  6 Mechanismus zpracovani vyjimek                                          (NOT IMPLEMENTED)
+
+Nase rozsireni (?b):
+  1 Moznost deklarace promennych vcetne inicializace; pripadne az pozdeji   (DONE)
+  2 Moznost deklarace globalnich promennych kdekoliv (klidne mezi funkcemi)
+    (mysleno v ramci globalniho scopu)                                      (DONE)
+  3 Moznost deklarace pouze hlavicky funkce + dodeklarovani pozdeji         (DONE)
