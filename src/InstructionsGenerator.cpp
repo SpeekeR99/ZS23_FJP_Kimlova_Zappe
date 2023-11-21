@@ -22,14 +22,6 @@ Instruction &InstructionsGenerator::get_instruction(std::uint32_t index) {
     return this->instructions[index];
 }
 
-int InstructionsGenerator::get_last_int_index() const {
-    int index = this->instructions.size() - 1;
-    for (; index >= 0; index--)
-        if (this->instructions[index].instruction == "INT")
-            break;
-    return index;
-}
-
 std::uint32_t InstructionsGenerator::get_instruction_counter() const {
     return this->instruction_counter;
 }

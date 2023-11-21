@@ -15,18 +15,21 @@ ValueType str_to_val_type(const std::string &str) {
     }
 }
 
-ScopeSymbolTable::ScopeSymbolTable(uint32_t address_base, uint32_t address_offset) : table(), address_base(address_base), address_offset(address_offset) {
+ScopeSymbolTable::ScopeSymbolTable(uint32_t address_base, uint32_t address_offset, bool is_function_scope) : table(), address_base(address_base), address_offset(address_offset), is_function_scope(is_function_scope) {
     /* Empty */
 }
 
 ScopeSymbolTable::~ScopeSymbolTable() = default;
 
-void ScopeSymbolTable::insert(const std::string &name, SymbolType symbol_type, ValueType type, bool is_const) {
-    this->table[name] = SymbolTableRecord{name, symbol_type, type, is_const, this->address_base + this->address_offset++};
+void ScopeSymbolTable::insert(const std::string &name, SymbolType symbol_type, ValueType type, bool is_const, uint32_t address) {
+    if (symbol_type == VARIABLE)
+        this->table[name] = SymbolTableRecord{name, symbol_type, type, is_const, this->address_base + this->address_offset++};
+    else
+        this->table[name] = SymbolTableRecord{name, symbol_type, type, is_const, address};
 }
 
-void ScopeSymbolTable::insert(const std::string &name, SymbolType symbol_type, const std::string &type, bool is_const) {
-    this->insert(name, symbol_type, str_to_val_type(type), is_const);
+void ScopeSymbolTable::insert(const std::string &name, SymbolType symbol_type, const std::string &type, bool is_const, uint32_t address) {
+    this->insert(name, symbol_type, str_to_val_type(type), is_const, address);
 }
 
 bool ScopeSymbolTable::exists(const std::string &name) {
@@ -52,6 +55,11 @@ std::uint32_t ScopeSymbolTable::get_address_base() const {
     return this->address_base;
 }
 
+bool ScopeSymbolTable::get_is_function_scope() const {
+    return this->is_function_scope;
+}
+
+
 void ScopeSymbolTable::set_address_offset(std::uint32_t offset) {
     this->address_offset = offset;
 }
@@ -66,29 +74,41 @@ SymbolTable::SymbolTable() : table() {
 
 SymbolTable::~SymbolTable() = default;
 
-void SymbolTable::insert_scope(uint32_t address_base, uint32_t address_offset) {
-    this->table.emplace_back(address_base, address_offset);
+void SymbolTable::insert_scope(uint32_t address_base, uint32_t address_offset, bool is_function_scope) {
+    this->table.emplace_back(address_base, address_offset, is_function_scope);
 }
 
 void SymbolTable::remove_scope() {
     this->table.pop_back();
 }
 
-void SymbolTable::insert_symbol(const std::string &name, SymbolType symbol_type, ValueType type, bool is_const) {
-    this->table.back().insert(name, symbol_type, type, is_const);
+void SymbolTable::insert_symbol(const std::string &name, SymbolType symbol_type, ValueType type, bool is_const, uint32_t address) {
+    this->table.back().insert(name, symbol_type, type, is_const, address);
 }
 
-void SymbolTable::insert_symbol(const std::string &name, SymbolType symbol_type, const std::string &type, bool is_const) {
-    this->insert_symbol(name, symbol_type, str_to_val_type(type), is_const);
+void SymbolTable::insert_symbol(const std::string &name, SymbolType symbol_type, const std::string &type, bool is_const, uint32_t address) {
+    this->insert_symbol(name, symbol_type, str_to_val_type(type), is_const, address);
 }
 
-SymbolTableRecord &SymbolTable::get_symbol(const std::string &name, uint32_t *level) {
+SymbolTableRecord &SymbolTable::get_symbol(const std::string &name) {
     for (auto &it : std::ranges::reverse_view(this->table)) {
         if (it.exists(name))
             return it.get(name);
-        (*level)++;
     }
     return undefined_record;
+}
+
+uint32_t SymbolTable::get_symbol_level(const std::string &name) {
+    uint32_t level = 0;
+    ScopeSymbolTable *last_scope;
+    for (auto &it : std::ranges::reverse_view(this->table)) {
+        if (it.exists(name))
+            break;
+        if (last_scope != nullptr && last_scope->get_is_function_scope())
+            level++;
+        last_scope = &it;
+    }
+    return level;
 }
 
 ScopeSymbolTable &SymbolTable::get_scope(uint32_t index) {

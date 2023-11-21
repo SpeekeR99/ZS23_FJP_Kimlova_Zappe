@@ -4,6 +4,8 @@
 
     SymbolTable global_symbol_table;
     InstructionsGenerator global_instructions_generator;
+
+    std::vector<int> stack{};
 %}
 
 %code provides {
@@ -63,16 +65,16 @@ decl_var_stmt:
     }
     | TYPE ID ASSIGN_OP expr SEMICOLON {
         global_symbol_table.insert_symbol($2, VARIABLE, $1, false);
-        uint32_t level = 0;
-        auto address = global_symbol_table.get_symbol($2, &level).address;
+        auto address = global_symbol_table.get_symbol($2).address;
+        auto level = global_symbol_table.get_symbol_level($2);
         global_instructions_generator.generate(STO, level, address);
         free($1);
         free($2);
     }
     | CONSTANT TYPE ID ASSIGN_OP expr SEMICOLON {
         global_symbol_table.insert_symbol($3, VARIABLE, $2, true);
-        uint32_t level = 0;
-        auto address = global_symbol_table.get_symbol($3, &level).address;
+        auto address = global_symbol_table.get_symbol($3).address;
+        auto level = global_symbol_table.get_symbol_level($3);
         global_instructions_generator.generate(STO, level, address);
         free($2);
         free($3);
@@ -80,31 +82,39 @@ decl_var_stmt:
 
 assign_stmt:
     ID ASSIGN_OP expr SEMICOLON {
-        uint32_t level = 0;
-        auto address = global_symbol_table.get_symbol($1, &level).address;
+        auto address = global_symbol_table.get_symbol($1).address;
+        auto level = global_symbol_table.get_symbol_level($1);
         global_instructions_generator.generate(STO, level, address);
         free($1);
     }
 
 decl_func_stmt:
-    TYPE ID L_BRACKET params R_BRACKET {
-        uint32_t level = 0;
-        auto &symbol = global_symbol_table.get_symbol($2, &level);
+    TYPE ID L_BRACKET params R_BRACKET { /* TODO: call a deklarace jsou rozdilny veci */
+        auto instruction_line = global_instructions_generator.get_instruction_counter() + 1;
+        auto &symbol = global_symbol_table.get_symbol($2);
         if (symbol.name == "")
-            global_symbol_table.insert_symbol($2, FUNCTION, $1, false);
+            global_symbol_table.insert_symbol($2, FUNCTION, $1, false, instruction_line);
         else
-            symbol.address = 50; /* TODO: tohle je jenom pro testovani */
-        level = 0;
-        auto &func_symbol = global_symbol_table.get_symbol($2, &level);
-        global_instructions_generator.generate(CAL, level, func_symbol.address);
+            symbol.address = instruction_line;
         free($1);
         free($2);
+
+        global_symbol_table.insert_scope(0, 3, true);
+
+        auto instruction_line_jmp = global_instructions_generator.get_instruction_counter();
+        stack.emplace_back(instruction_line_jmp);
+        global_instructions_generator.generate(JMP, 0, 0);
+        global_instructions_generator.generate(INT, 0, 3);
     }
     block {
-
+        auto old_instruction_line_jmp = stack.back();
+        stack.pop_back();
+        auto &jmp_over_func_instr = global_instructions_generator.get_instruction(old_instruction_line_jmp);
+        jmp_over_func_instr.parameter = global_instructions_generator.get_instruction_counter();
     }
     | TYPE ID L_BRACKET params R_BRACKET SEMICOLON {
-        global_symbol_table.insert_symbol($2, FUNCTION, $1, false);
+        auto instruction_line = global_instructions_generator.get_instruction_counter();
+        global_symbol_table.insert_symbol($2, FUNCTION, $1, false, instruction_line);
         free($1);
         free($2);
     }
@@ -132,14 +142,17 @@ params_list:
 block:
     BEGIN_BLOCK {
         auto number_of_variables = global_symbol_table.get_number_of_variables();
-        global_symbol_table.insert_scope(0, 3);
+        auto instruction_line = global_instructions_generator.get_instruction_counter();
+        stack.emplace_back(instruction_line);
         global_instructions_generator.generate(INT, 0, 0);
     }
     stmts END_BLOCK {
         auto number_of_variables = global_symbol_table.get_number_of_variables();
-        int last_int_idx = global_instructions_generator.get_last_int_index();
-        auto &last_int_instr = global_instructions_generator.get_instruction(last_int_idx);
-        last_int_instr.parameter = number_of_variables + 3;
+        auto old_instruction_line = stack.back();
+        stack.pop_back();
+        auto &last_int_instr = global_instructions_generator.get_instruction(old_instruction_line);
+        last_int_instr.parameter = number_of_variables;
+        global_instructions_generator.generate(INT, 0, -number_of_variables);
         global_symbol_table.remove_scope();
     }
 
@@ -215,8 +228,8 @@ return_stmt:
 
 expr:
     ID {
-        uint32_t level = 0;
-        auto address = global_symbol_table.get_symbol($1, &level).address;
+        auto address = global_symbol_table.get_symbol($1).address;
+        auto level = global_symbol_table.get_symbol_level($1);
         global_instructions_generator.generate(LOD, level, address);
         free($1);
     }
@@ -305,7 +318,10 @@ cast_expr:
 
 call_func_expr:
     ID L_BRACKET args R_BRACKET {
-        printf("call_func_expr: id l_bracket args r_bracket \n");
+        auto &func_symbol = global_symbol_table.get_symbol($1);
+        auto level = global_symbol_table.get_symbol_level($1);
+        global_instructions_generator.generate(CAL, level, func_symbol.address);
+        free($1);
     }
 
 args:

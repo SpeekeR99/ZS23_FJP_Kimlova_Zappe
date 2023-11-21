@@ -1,6 +1,17 @@
 int ahoj = 5;
 int cau;
 
+int function() {
+    int a = 5;
+    int b = 3;
+}
+
+void func2() {
+    int a;
+}
+
+int problem_no_more = 100;
+
 int main() {
     int asdf = 1;
     int hhjkl;

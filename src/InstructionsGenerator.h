@@ -66,7 +66,6 @@ public:
 
     [[nodiscard]] std::vector<Instruction> &get_instructions();
     [[nodiscard]] Instruction &get_instruction(std::uint32_t index);
-    [[nodiscard]] int get_last_int_index() const;
 
     [[nodiscard]] std::uint32_t get_instruction_counter() const;
     void set_instruction_counter(std::uint32_t counter);
