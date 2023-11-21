@@ -6,6 +6,7 @@
     InstructionsGenerator global_instructions_generator;
 
     std::vector<int> stack{};
+    std::map<std::string, int> declared_functions{};
 %}
 
 %code provides {
@@ -43,13 +44,13 @@
 
 program:
     decl_var_stmt program {
-        printf("decl_var_stmt\n");
+        ; /* Empty */
     }
     | decl_func_stmt program {
-        printf("decl_func_stmt\n");
+        ; /* Empty */
     }
     | /* empty */ {
-        printf("empty\n");
+        ; /* Empty */
     }
 
 decl_var_stmt:
@@ -89,13 +90,19 @@ assign_stmt:
     }
 
 decl_func_stmt:
-    TYPE ID L_BRACKET params R_BRACKET { /* TODO: call a deklarace jsou rozdilny veci */
-        auto instruction_line = global_instructions_generator.get_instruction_counter() + 1;
+    TYPE ID L_BRACKET params R_BRACKET {
+        auto future_function_address = global_instructions_generator.get_instruction_counter() + 1;
         auto &symbol = global_symbol_table.get_symbol($2);
-        if (symbol.name == "")
-            global_symbol_table.insert_symbol($2, FUNCTION, $1, false, instruction_line);
-        else
-            symbol.address = instruction_line;
+
+        if (symbol.name == "") /* Function was not yet declared */
+            global_symbol_table.insert_symbol($2, FUNCTION, $1, false, future_function_address);
+        else { /* Function was earlier declared as a header only */
+            symbol.address = future_function_address;
+            auto jump_instr_index = declared_functions[$2];
+            auto &jump_instr = global_instructions_generator.get_instruction(jump_instr_index);
+            jump_instr.parameter = future_function_address;
+        }
+
         free($1);
         free($2);
 
@@ -113,28 +120,34 @@ decl_func_stmt:
         jmp_over_func_instr.parameter = global_instructions_generator.get_instruction_counter();
     }
     | TYPE ID L_BRACKET params R_BRACKET SEMICOLON {
-        auto instruction_line = global_instructions_generator.get_instruction_counter();
-        global_symbol_table.insert_symbol($2, FUNCTION, $1, false, instruction_line);
+        auto jmp = global_instructions_generator.get_instruction_counter();
+        global_instructions_generator.generate(JMP, 0, jmp + 2); /* Jump over the function header which just jumps to the actual body later */
+
+        auto function_address = global_instructions_generator.get_instruction_counter();
+        global_symbol_table.insert_symbol($2, FUNCTION, $1, false, function_address);
+
+        /* Prepare for later jump */
+        declared_functions[$2] = function_address; /* function_address serves as instruction index here as well */
+        global_instructions_generator.generate(JMP, 0, 0);
+
         free($1);
         free($2);
     }
 
 params:
     params_list {
-        printf("params: params_list \n");
+        ; /* Empty */
     }
     | /* empty */ {
-        printf("params: empty \n");
+        ; /* Empty */
     }
 
 params_list:
-    TYPE ID COMMA params_list {
-        printf("params_list: type id comma params_list \n");
+    TYPE ID COMMA params_list { /* TODO: parameters as a whole are not yet implemented */
         free($1);
         free($2);
     }
-    | TYPE ID {
-        printf("params_list: type id \n");
+    | TYPE ID { /* TODO: parameters as a whole are not yet implemented */
         free($1);
         free($2);
     }
@@ -158,64 +171,64 @@ block:
 
 stmts:
     stmt stmts {
-        printf("stmts: stmt stmts \n");
+        ; /* Empty */
     }
     | /* empty */ {
-        printf("stmts: empty \n");
+        ; /* Empty */
     }
 
 stmt:
     SEMICOLON {
-        ;
+        ; /* Empty */
     }
     | decl_var_stmt {
-        ;
+        ; /* Empty */
     }
     | assign_stmt {
-        ;
+        ; /* Empty */
     }
     | if_stmt {
-        printf("stmt: if_stmt \n");
+        ; /* Empty */
     }
     | while_stmt {
-        printf("stmt: while_stmt \n");
+        ; /* Empty */
     }
     | for_stmt {
-        printf("stmt: for_stmt \n");
+        ; /* Empty */
     }
     | call_func_stmt {
-        printf("stmt: call_func_stmt \n");
+        ; /* Empty */
     }
     | return_stmt {
-        printf("stmt: return_stmt \n");
+        ; /* Empty */
     }
 
-if_stmt:
+if_stmt: /* TODO: if_stmt is not yet implemented */
     IF L_BRACKET expr R_BRACKET block else_stmt {
-        printf("if_stmt: if l_bracket expr r_bracket block else_stmt \n");
+        ;
     }
 
-else_stmt:
+else_stmt: /* TODO: else_stmt is not yet implemented */
     ELSE block {
-        printf("else_stmt: else block \n");
+        ;
     }
     | /* empty */ {
-        printf("else_stmt: empty \n");
+        ; /* Empty */
     }
 
-while_stmt:
+while_stmt: /* TODO: while_stmt is not yet implemented */
     WHILE L_BRACKET expr R_BRACKET block {
-        printf("while_stmt: while l_bracket expr r_bracket block \n");
+        ;
     }
 
-for_stmt:
+for_stmt: /* TODO: for_stmt is not yet implemented */
     FOR L_BRACKET expr SEMICOLON expr SEMICOLON expr R_BRACKET block {
-        printf("for_stmt: for l_bracket expr semicolon expr semicolon expr r_bracket block \n");
+        ;
     }
 
 call_func_stmt:
     call_func_expr SEMICOLON {
-        printf("call_func_stmt: call_func_expr semicolon \n");
+        ; /* Empty */
     }
 
 return_stmt:
@@ -249,10 +262,10 @@ expr:
         ; /* Empty */
     }
     | cast_expr {
-        ;
+        ; /* Empty */
     }
     | call_func_expr {
-        ;
+        ; /* Empty */
     }
 
 arithm_expr:
@@ -312,32 +325,32 @@ compare_expr:
     }
 
 cast_expr:
-    L_BRACKET TYPE R_BRACKET expr {
-        printf("cast_expr: l_bracket type r_bracket expr \n");
+    L_BRACKET TYPE R_BRACKET expr { /* TODO: cast_expr is not yet implemented */
+        ;
     }
 
 call_func_expr:
     ID L_BRACKET args R_BRACKET {
-        auto &func_symbol = global_symbol_table.get_symbol($1);
+        auto address = global_symbol_table.get_symbol($1).address;
         auto level = global_symbol_table.get_symbol_level($1);
-        global_instructions_generator.generate(CAL, level, func_symbol.address);
+        global_instructions_generator.generate(CAL, level, address);
         free($1);
     }
 
 args:
     args_list {
-        printf("args: args_list \n");
+        ; /* Empty */
     }
     | /* empty */ {
-        printf("args: empty \n");
+        ; /* Empty */
     }
 
 args_list:
-    expr COMMA args_list {
-        printf("args_list: expr comma args_list \n");
+    expr COMMA args_list { /* TODO: args_list is not yet implemented */
+        ;
     }
-    | expr {
-        printf("args_list: expr \n");
+    | expr { /* TODO: args_list is not yet implemented */
+        ;
     }
 
 %%

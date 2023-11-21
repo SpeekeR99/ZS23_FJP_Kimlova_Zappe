@@ -6,6 +6,8 @@ int function() {
     int b = 3;
 }
 
+int sum();
+
 void func2() {
     int a;
 }
@@ -20,5 +22,12 @@ int main() {
     ahoj = asdf;
     cau = 3;
     asdf = cau;
+    sum();
+    return;
+}
+
+int sum() {
+    int a = 5;
+    int b = 3;
     return;
 }
