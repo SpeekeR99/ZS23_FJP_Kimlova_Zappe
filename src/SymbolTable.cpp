@@ -104,9 +104,9 @@ uint32_t SymbolTable::get_symbol_level(const std::string &name) {
     for (auto &it : std::ranges::reverse_view(this->table)) {
         if (it.exists(name))
             break;
-        if (last_scope != nullptr && last_scope->get_is_function_scope())
-            level++;
         last_scope = &it;
+        if (last_scope && last_scope->get_is_function_scope())
+            level++;
     }
     return level;
 }

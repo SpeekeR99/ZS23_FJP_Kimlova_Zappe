@@ -154,7 +154,6 @@ params_list:
 
 block:
     BEGIN_BLOCK {
-        auto number_of_variables = global_symbol_table.get_number_of_variables();
         auto instruction_line = global_instructions_generator.get_instruction_counter();
         stack.emplace_back(instruction_line);
         global_instructions_generator.generate(INT, 0, 0);
@@ -206,9 +205,24 @@ stmt:
         ; /* Empty */
     }
 
-if_stmt: /* TODO: if_stmt is not yet implemented */
-    IF L_BRACKET expr R_BRACKET block else_stmt {
-        ;
+if_stmt:
+    IF {
+        global_symbol_table.insert_scope(0, 3, false);
+    }
+    L_BRACKET expr R_BRACKET {
+        auto instruction_line = global_instructions_generator.get_instruction_counter();
+        stack.emplace_back(instruction_line);
+        global_instructions_generator.generate(JMC, 0, 0);
+    }
+    block {
+        auto current_instruction_line = global_instructions_generator.get_instruction_counter();
+        auto old_instruction_line = stack.back();
+        stack.pop_back();
+        auto &last_jmc_instr = global_instructions_generator.get_instruction(old_instruction_line);
+        last_jmc_instr.parameter = current_instruction_line;
+    }
+    else_stmt {
+        ; /* Empty */
     }
 
 else_stmt: /* TODO: else_stmt is not yet implemented */
