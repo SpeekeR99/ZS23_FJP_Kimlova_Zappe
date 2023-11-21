@@ -9,7 +9,7 @@ Zakladni funkcionalita (10b celkem):
 
 Jednoducha rozsireni (1b kazde):
   1 Kazdy dalsi typ cyklu                                                   (NOT IMPLEMENTED)
-  2 Else vetev                                                              (NOT IMPLEMENTED)
+  2 Else vetev                                                              (DONE)
   3 Datovy typ boolean + operace s nim                                      (KINDA DONE)
   4 Datovy typ real + operace s nim                                         (NOT IMPLEMENTED)
   5 Datovy typ string + operace s nim                                       (NOT IMPLEMENTED)

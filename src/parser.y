@@ -207,7 +207,9 @@ stmt:
 
 if_stmt:
     IF {
-        global_symbol_table.insert_scope(0, 3, false);
+        auto current_scope = global_symbol_table.get_current_scope();
+        auto new_base = current_scope.get_address_base() + current_scope.get_address_offset();
+        global_symbol_table.insert_scope(new_base, 1, false);
     }
     L_BRACKET expr R_BRACKET {
         auto instruction_line = global_instructions_generator.get_instruction_counter();
@@ -219,15 +221,26 @@ if_stmt:
         auto old_instruction_line = stack.back();
         stack.pop_back();
         auto &last_jmc_instr = global_instructions_generator.get_instruction(old_instruction_line);
-        last_jmc_instr.parameter = current_instruction_line;
+        last_jmc_instr.parameter = current_instruction_line + 1;
+        stack.emplace_back(current_instruction_line);
+        global_instructions_generator.generate(JMP, 0, 0);
     }
     else_stmt {
-        ; /* Empty */
+        auto current_instruction_line = global_instructions_generator.get_instruction_counter();
+        auto old_instruction_line = stack.back();
+        stack.pop_back();
+        auto &last_jmp_instr = global_instructions_generator.get_instruction(old_instruction_line);
+        last_jmp_instr.parameter = current_instruction_line;
     }
 
 else_stmt: /* TODO: else_stmt is not yet implemented */
-    ELSE block {
-        ;
+    ELSE {
+        auto current_scope = global_symbol_table.get_current_scope();
+        auto new_base = current_scope.get_address_base() + current_scope.get_address_offset();
+        global_symbol_table.insert_scope(new_base, 1, false);
+    }
+    block {
+        ; /* Empty */
     }
     | /* empty */ {
         ; /* Empty */

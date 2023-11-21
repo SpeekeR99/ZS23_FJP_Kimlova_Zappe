@@ -123,6 +123,10 @@ uint32_t SymbolTable::get_number_of_variables() const {
     return number_of_variables;
 }
 
+ScopeSymbolTable &SymbolTable::get_current_scope() {
+    return this->table.back();
+}
+
 std::ostream &operator<<(std::ostream &os, const SymbolTable &table) {
     for (const auto &scope : table.table) {
         os << "Scope: " << scope.get_address_base() << " " << scope.get_address_offset() << std::endl;
