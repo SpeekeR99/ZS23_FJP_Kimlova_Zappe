@@ -158,7 +158,7 @@ block:
         stack.emplace_back(instruction_line);
         global_instructions_generator.generate(INT, 0, 0);
     }
-    stmts END_BLOCK {
+    stmts END_BLOCK { /* TODO: scopes are not working properly if there's a block between declarations of variables */
         auto number_of_variables = global_symbol_table.get_number_of_variables();
         auto old_instruction_line = stack.back();
         stack.pop_back();
@@ -209,7 +209,7 @@ if_stmt:
     IF {
         auto current_scope = global_symbol_table.get_current_scope();
         auto new_base = current_scope.get_address_base() + current_scope.get_address_offset();
-        global_symbol_table.insert_scope(new_base, 1, false);
+        global_symbol_table.insert_scope(new_base, 0, false);
     }
     L_BRACKET expr R_BRACKET {
         auto instruction_line = global_instructions_generator.get_instruction_counter();
@@ -233,11 +233,11 @@ if_stmt:
         last_jmp_instr.parameter = current_instruction_line;
     }
 
-else_stmt: /* TODO: else_stmt is not yet implemented */
+else_stmt:
     ELSE {
         auto current_scope = global_symbol_table.get_current_scope();
         auto new_base = current_scope.get_address_base() + current_scope.get_address_offset();
-        global_symbol_table.insert_scope(new_base, 1, false);
+        global_symbol_table.insert_scope(new_base, 0, false);
     }
     block {
         ; /* Empty */
@@ -246,9 +246,29 @@ else_stmt: /* TODO: else_stmt is not yet implemented */
         ; /* Empty */
     }
 
-while_stmt: /* TODO: while_stmt is not yet implemented */
-    WHILE L_BRACKET expr R_BRACKET block {
-        ;
+while_stmt:
+    WHILE {
+        auto current_scope = global_symbol_table.get_current_scope();
+        auto new_base = current_scope.get_address_base() + current_scope.get_address_offset();
+        global_symbol_table.insert_scope(new_base, 0, false);
+
+        auto instruction_line = global_instructions_generator.get_instruction_counter();
+        stack.emplace_back(instruction_line);
+    }
+    L_BRACKET expr R_BRACKET {
+        auto instruction_line = global_instructions_generator.get_instruction_counter();
+        stack.emplace_back(instruction_line);
+        global_instructions_generator.generate(JMC, 0, 0);
+    }
+    block {
+        auto old_instruction_line = stack.back();
+        stack.pop_back();
+        auto &last_jmc_instr = global_instructions_generator.get_instruction(old_instruction_line);
+        auto older_instruction_line = stack.back();
+        stack.pop_back();
+        global_instructions_generator.generate(JMP, 0, older_instruction_line);
+        auto current_instruction_line = global_instructions_generator.get_instruction_counter();
+        last_jmc_instr.parameter = current_instruction_line;
     }
 
 for_stmt: /* TODO: for_stmt is not yet implemented */
@@ -262,7 +282,7 @@ call_func_stmt:
     }
 
 return_stmt:
-    RETURN expr SEMICOLON {
+    RETURN expr SEMICOLON { /* TODO: return_stmt with actual value is not yet implemented */
         global_instructions_generator.generate(RET, 0, 0);
     }
     | RETURN SEMICOLON {

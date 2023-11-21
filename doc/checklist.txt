@@ -3,7 +3,7 @@ Zakladni funkcionalita (10b celkem):
   2 Definice celociselnych konstant                                         (DONE)
   3 Prirazeni                                                               (DONE)
   4 Zakladni aritmetika                                                     (DONE)
-  5 Libovolny cyklus                                                        (NOT IMPLEMENTED)
+  5 Libovolny cyklus - while                                                (DONE)
   6 If bez else vetve                                                       (DONE)
   7 Definice podprogramu a volani                                           (DONE)
 
