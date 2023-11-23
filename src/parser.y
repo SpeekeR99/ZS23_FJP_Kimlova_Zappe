@@ -1,13 +1,15 @@
 %{
-    #include "SymbolTable.h"
-    #include "InstructionsGenerator.h"
+    #include "../src/AbstractSyntaxTree.h"
 
-    SymbolTable global_symbol_table;
-    InstructionsGenerator global_instructions_generator;
+    extern int yylineno;
+    extern int column;
 
-    std::vector<int> stack{};
-    std::map<std::string, int> declared_functions{};
+    ASTNodeBlock *global_block;
 %}
+
+%code requires {
+    #include "AbstractSyntaxTree.h"
+}
 
 %code provides {
   int yyerror(const char *s);
@@ -17,9 +19,16 @@
 %locations
 %define api.pure
 %union {
-    int number;
-    char *string;
+    ASTNode *node;
+    ASTNodeExpression *expr;
+    ASTNodeStatement *stmt;
+    ASTNodeBlock *block;
+    std::vector<ASTNodeDeclVar *> *params;
+    std::vector<ASTNodeExpression *> *args;
+    std::string *string;
+    int token;
 }
+%define parse.error verbose
 
 %nonassoc TYPE ID LITERAL CONSTANT BEGIN_BLOCK END_BLOCK
 
@@ -35,377 +44,307 @@
 %left MUL DIV MOD
 %left U_MINUS
 
-%start program
+%type <string> ID TYPE LITERAL ADD SUB MUL DIV MOD AND OR NOT EQ NEQ LESS LESSEQ GRT GRTEQ ASSIGN_OP
+%type <expr> expr arithm_expr logic_expr compare_expr cast_expr call_func_expr assign_expr
+%type <stmt> stmt decl_var_stmt decl_func_stmt if_stmt while_stmt for_stmt return_stmt
+%type <block> program stmts block else_stmt
+%type <params> params params_list
+%type <args> args args_list
 
-%type <string> ID TYPE
-%type <number> LITERAL expr
+%start program
 
 %%
 
 program:
-    decl_var_stmt program {
-        ; /* Empty */
+    program decl_var_stmt {
+        $1->statements.emplace_back($2);
     }
-    | decl_func_stmt program {
-        ; /* Empty */
+    | program decl_func_stmt {
+        $1->statements.emplace_back($2);
     }
-    | /* empty */ {
-        ; /* Empty */
+    | %empty {
+        global_block = new ASTNodeBlock();
+        $$ = global_block;
     }
+;
 
 decl_var_stmt:
     TYPE ID SEMICOLON {
-        global_symbol_table.insert_symbol($2, VARIABLE, $1, false);
-        free($1);
-        free($2);
+        $$ = new ASTNodeDeclVar(*$1, *$2, false, nullptr);
+        delete $1;
+        delete $2;
     }
     | CONSTANT TYPE ID SEMICOLON {
-        global_symbol_table.insert_symbol($3, VARIABLE, $2, true);
-        free($2);
-        free($3);
+        $$ = new ASTNodeDeclVar(*$2, *$3, true, nullptr);
+        delete $2;
+        delete $3;
     }
     | TYPE ID ASSIGN_OP expr SEMICOLON {
-        global_symbol_table.insert_symbol($2, VARIABLE, $1, false);
-        auto address = global_symbol_table.get_symbol($2).address;
-        auto level = global_symbol_table.get_symbol_level($2);
-        global_instructions_generator.generate(STO, level, address);
-        free($1);
-        free($2);
+        $$ = new ASTNodeDeclVar(*$1, *$2, false, $4);
+        delete $1;
+        delete $2;
     }
     | CONSTANT TYPE ID ASSIGN_OP expr SEMICOLON {
-        global_symbol_table.insert_symbol($3, VARIABLE, $2, true);
-        auto address = global_symbol_table.get_symbol($3).address;
-        auto level = global_symbol_table.get_symbol_level($3);
-        global_instructions_generator.generate(STO, level, address);
-        free($2);
-        free($3);
+        $$ = new ASTNodeDeclVar(*$2, *$3, true, $5);
+        delete $2;
+        delete $3;
     }
-
-assign_stmt:
-    ID ASSIGN_OP expr SEMICOLON {
-        auto address = global_symbol_table.get_symbol($1).address;
-        auto level = global_symbol_table.get_symbol_level($1);
-        global_instructions_generator.generate(STO, level, address);
-        free($1);
-    }
+;
 
 decl_func_stmt:
-    TYPE ID L_BRACKET params R_BRACKET {
-        auto future_function_address = global_instructions_generator.get_instruction_counter() + 1;
-        auto &symbol = global_symbol_table.get_symbol($2);
-
-        if (symbol.name == "") /* Function was not yet declared */
-            global_symbol_table.insert_symbol($2, FUNCTION, $1, false, future_function_address);
-        else { /* Function was earlier declared as a header only */
-            symbol.address = future_function_address;
-            auto jump_instr_index = declared_functions[$2];
-            auto &jump_instr = global_instructions_generator.get_instruction(jump_instr_index);
-            jump_instr.parameter = future_function_address;
-        }
-
-        free($1);
-        free($2);
-
-        global_symbol_table.insert_scope(0, 3, true);
-
-        auto instruction_line_jmp = global_instructions_generator.get_instruction_counter();
-        stack.emplace_back(instruction_line_jmp);
-        global_instructions_generator.generate(JMP, 0, 0);
-        global_instructions_generator.generate(INT, 0, 3);
-    }
-    block {
-        auto old_instruction_line_jmp = stack.back();
-        stack.pop_back();
-        auto &jmp_over_func_instr = global_instructions_generator.get_instruction(old_instruction_line_jmp);
-        jmp_over_func_instr.parameter = global_instructions_generator.get_instruction_counter();
+    TYPE ID L_BRACKET params R_BRACKET block {
+        $$ = new ASTNodeDeclFunc(*$1, *$2, *$4, $6);
+        delete $1;
+        delete $2;
+        delete $4;
     }
     | TYPE ID L_BRACKET params R_BRACKET SEMICOLON {
-        auto jmp = global_instructions_generator.get_instruction_counter();
-        global_instructions_generator.generate(JMP, 0, jmp + 2); /* Jump over the function header which just jumps to the actual body later */
-
-        auto function_address = global_instructions_generator.get_instruction_counter();
-        global_symbol_table.insert_symbol($2, FUNCTION, $1, false, function_address);
-
-        /* Prepare for later jump */
-        declared_functions[$2] = function_address; /* function_address serves as instruction index here as well */
-        global_instructions_generator.generate(JMP, 0, 0);
-
-        free($1);
-        free($2);
+        $$ = new ASTNodeDeclFunc(*$1, *$2, *$4, nullptr);
+        delete $1;
+        delete $2;
+        delete $4;
     }
+;
 
 params:
     params_list {
-        ; /* Empty */
+        $$ = $1;
     }
-    | /* empty */ {
-        ; /* Empty */
+    | %empty {
+        $$ = new std::vector<ASTNodeDeclVar *>();
     }
+;
 
 params_list:
-    TYPE ID COMMA params_list { /* TODO: parameters as a whole are not yet implemented */
-        free($1);
-        free($2);
+    params_list COMMA TYPE ID {
+        $1->emplace_back(new ASTNodeDeclVar(*$3, *$4, false, nullptr));
+        $$ = $1;
+        delete $3;
+        delete $4;
     }
-    | TYPE ID { /* TODO: parameters as a whole are not yet implemented */
-        free($1);
-        free($2);
+    | TYPE ID {
+        $$ = new std::vector<ASTNodeDeclVar *>();
+        $$->emplace_back(new ASTNodeDeclVar(*$1, *$2, false, nullptr));
+        delete $1;
+        delete $2;
     }
+;
 
 block:
-    BEGIN_BLOCK {
-        auto instruction_line = global_instructions_generator.get_instruction_counter();
-        stack.emplace_back(instruction_line);
-        global_instructions_generator.generate(INT, 0, 0);
+    BEGIN_BLOCK stmts END_BLOCK {
+        $$ = $2;
     }
-    stmts END_BLOCK { /* TODO: scopes are not working properly if there's a block between declarations of variables */
-        auto number_of_variables = global_symbol_table.get_number_of_variables();
-        auto old_instruction_line = stack.back();
-        stack.pop_back();
-        auto &last_int_instr = global_instructions_generator.get_instruction(old_instruction_line);
-        last_int_instr.parameter = number_of_variables;
-        global_instructions_generator.generate(INT, 0, -number_of_variables);
-        global_symbol_table.remove_scope();
-    }
+;
 
 stmts:
-    stmt stmts {
-        ; /* Empty */
+    stmts stmt {
+        $1->statements.emplace_back($2);
     }
-    | /* empty */ {
-        ; /* Empty */
+    | %empty {
+        $$ = new ASTNodeBlock();
     }
+;
 
 stmt:
     SEMICOLON {
-        ; /* Empty */
+        /* Empty */
     }
     | decl_func_stmt {
-        ; /* Empty */
+        $$ = $1;
     }
     | decl_var_stmt {
-        ; /* Empty */
-    }
-    | assign_stmt {
-        ; /* Empty */
+        $$ = $1;
     }
     | if_stmt {
-        ; /* Empty */
+        $$ = $1;
     }
     | while_stmt {
-        ; /* Empty */
+        $$ = $1;
     }
     | for_stmt {
-        ; /* Empty */
-    }
-    | call_func_stmt {
-        ; /* Empty */
+        $$ = $1;
     }
     | return_stmt {
-        ; /* Empty */
+        $$ = $1;
     }
+    | expr SEMICOLON {
+        $$ = new ASTNodeExpressionStatement($1);
+    }
+;
 
 if_stmt:
-    IF {
-        auto current_scope = global_symbol_table.get_current_scope();
-        auto new_base = current_scope.get_address_base() + current_scope.get_address_offset();
-        global_symbol_table.insert_scope(new_base, 0, false);
+    IF L_BRACKET expr R_BRACKET block else_stmt {
+        $$ = new ASTNodeIf($3, $5, $6);
     }
-    L_BRACKET expr R_BRACKET {
-        auto instruction_line = global_instructions_generator.get_instruction_counter();
-        stack.emplace_back(instruction_line);
-        global_instructions_generator.generate(JMC, 0, 0);
-    }
-    block {
-        auto current_instruction_line = global_instructions_generator.get_instruction_counter();
-        auto old_instruction_line = stack.back();
-        stack.pop_back();
-        auto &last_jmc_instr = global_instructions_generator.get_instruction(old_instruction_line);
-        last_jmc_instr.parameter = current_instruction_line + 1;
-        stack.emplace_back(current_instruction_line);
-        global_instructions_generator.generate(JMP, 0, 0);
-    }
-    else_stmt {
-        auto current_instruction_line = global_instructions_generator.get_instruction_counter();
-        auto old_instruction_line = stack.back();
-        stack.pop_back();
-        auto &last_jmp_instr = global_instructions_generator.get_instruction(old_instruction_line);
-        last_jmp_instr.parameter = current_instruction_line;
-    }
+;
 
 else_stmt:
-    ELSE {
-        auto current_scope = global_symbol_table.get_current_scope();
-        auto new_base = current_scope.get_address_base() + current_scope.get_address_offset();
-        global_symbol_table.insert_scope(new_base, 0, false);
+    ELSE block {
+        $$ = $2;
     }
-    block {
-        ; /* Empty */
+    | %empty {
+        $$ = nullptr;
     }
-    | /* empty */ {
-        ; /* Empty */
-    }
+;
 
 while_stmt:
-    WHILE {
-        auto current_scope = global_symbol_table.get_current_scope();
-        auto new_base = current_scope.get_address_base() + current_scope.get_address_offset();
-        global_symbol_table.insert_scope(new_base, 0, false);
+    WHILE L_BRACKET expr R_BRACKET block {
+        $$ = new ASTNodeWhile($3, $5);
+    }
+;
 
-        auto instruction_line = global_instructions_generator.get_instruction_counter();
-        stack.emplace_back(instruction_line);
-    }
-    L_BRACKET expr R_BRACKET {
-        auto instruction_line = global_instructions_generator.get_instruction_counter();
-        stack.emplace_back(instruction_line);
-        global_instructions_generator.generate(JMC, 0, 0);
-    }
-    block {
-        auto old_instruction_line = stack.back();
-        stack.pop_back();
-        auto &last_jmc_instr = global_instructions_generator.get_instruction(old_instruction_line);
-        auto older_instruction_line = stack.back();
-        stack.pop_back();
-        global_instructions_generator.generate(JMP, 0, older_instruction_line);
-        auto current_instruction_line = global_instructions_generator.get_instruction_counter();
-        last_jmc_instr.parameter = current_instruction_line;
-    }
-
-for_stmt: /* TODO: for_stmt is not yet implemented */
+for_stmt:
     FOR L_BRACKET expr SEMICOLON expr SEMICOLON expr R_BRACKET block {
-        ;
+        auto temp = new ASTNodeExpressionStatement($3);
+        $$ = new ASTNodeFor(temp, $5, $7, $9);
     }
-
-call_func_stmt:
-    call_func_expr SEMICOLON {
-        ; /* Empty */
+    | FOR L_BRACKET decl_var_stmt expr SEMICOLON expr R_BRACKET block {
+        $$ = new ASTNodeFor($3, $4, $6, $8);
     }
+;
 
 return_stmt:
-    RETURN expr SEMICOLON { /* TODO: return_stmt with actual value is not yet implemented */
-        global_instructions_generator.generate(RET, 0, 0);
+    RETURN expr SEMICOLON {
+        $$ = new ASTNodeReturn($2);
     }
     | RETURN SEMICOLON {
-        global_instructions_generator.generate(RET, 0, 0);
+        $$ = new ASTNodeReturn(nullptr);
     }
+;
 
 expr:
     ID {
-        auto address = global_symbol_table.get_symbol($1).address;
-        auto level = global_symbol_table.get_symbol_level($1);
-        global_instructions_generator.generate(LOD, level, address);
-        free($1);
+        $$ = new ASTNodeIdentifier(*$1);
+        delete $1;
     }
     | LITERAL {
-        global_instructions_generator.generate(LIT, 0, $1);
+        $$ = new ASTNodeIntLiteral(atoi($1->c_str()));
+        delete $1;
     }
     | L_BRACKET expr R_BRACKET {
-        ; /* Empty */
+        $$ = $2;
+    }
+    | assign_expr {
+        $$ = $1;
     }
     | arithm_expr {
-        ; /* Empty */
+        $$ = $1;
     }
     | logic_expr {
-        ; /* Empty */
+        $$ = $1;
     }
     | compare_expr {
-        ; /* Empty */
+        $$ = $1;
     }
     | cast_expr {
-        ; /* Empty */
+        $$ = $1;
     }
     | call_func_expr {
-        ; /* Empty */
+        $$ = $1;
     }
+;
+
+assign_expr:
+    ID ASSIGN_OP expr {
+        $$ = new ASTNodeAssignExpression(*$1, $3);
+        delete $1;
+    }
+;
 
 arithm_expr:
     expr ADD expr {
-        global_instructions_generator.generate(OPR, 0, PL0_ADD);
+        $$ = new ASTNodeBinaryOperator($1, "+", $3);
     }
     | expr SUB expr {
-        global_instructions_generator.generate(OPR, 0, PL0_SUB);
+        $$ = new ASTNodeBinaryOperator($1, "-", $3);
     }
     | expr MUL expr {
-        global_instructions_generator.generate(OPR, 0, PL0_MUL);
+        $$ = new ASTNodeBinaryOperator($1, "*", $3);
     }
     | expr DIV expr {
-        global_instructions_generator.generate(OPR, 0, PL0_DIV);
+        $$ = new ASTNodeBinaryOperator($1, "/", $3);
     }
     | expr MOD expr {
-        global_instructions_generator.generate(OPR, 0, PL0_MOD);
+        $$ = new ASTNodeBinaryOperator($1, "%", $3);
     }
-    | SUB expr %prec U_MINUS {
-        global_instructions_generator.generate(OPR, 0, PL0_NEG);
+    | ADD expr %prec U_MINUS {
+        $$ = new ASTNodeUnaryOperator("-", $2);
     }
+;
+
 
 logic_expr:
     expr AND expr {
-        global_instructions_generator.generate(OPR, 0, PL0_ADD);
-        global_instructions_generator.generate(LIT, 0, 2);
-        global_instructions_generator.generate(OPR, 0, PL0_EQ);
+        $$ = new ASTNodeBinaryOperator($1, "&&", $3);
     }
     | expr OR expr {
-        global_instructions_generator.generate(OPR, 0, PL0_ADD);
-        global_instructions_generator.generate(LIT, 0, 0);
-        global_instructions_generator.generate(OPR, 0, PL0_NEQ);
+        $$ = new ASTNodeBinaryOperator($1, "||", $3);
     }
     | NOT expr {
-        global_instructions_generator.generate(LIT, 0, 0);
-        global_instructions_generator.generate(OPR, 0, PL0_EQ);
+        $$ = new ASTNodeUnaryOperator("!", $2);
     }
+;
 
 compare_expr:
     expr EQ expr {
-        global_instructions_generator.generate(OPR, 0, PL0_EQ);
+        $$ = new ASTNodeBinaryOperator($1, "==", $3);
     }
     | expr NEQ expr {
-        global_instructions_generator.generate(OPR, 0, PL0_NEQ);
+        $$ = new ASTNodeBinaryOperator($1, "!=", $3);
     }
     | expr LESS expr {
-        global_instructions_generator.generate(OPR, 0, PL0_LT);
+        $$ = new ASTNodeBinaryOperator($1, "<", $3);
     }
     | expr LESSEQ expr {
-        global_instructions_generator.generate(OPR, 0, PL0_LEQ);
+        $$ = new ASTNodeBinaryOperator($1, "<=", $3);
     }
     | expr GRT expr {
-        global_instructions_generator.generate(OPR, 0, PL0_GRT);
+        $$ = new ASTNodeBinaryOperator($1, ">", $3);
     }
     | expr GRTEQ expr {
-        global_instructions_generator.generate(OPR, 0, PL0_GEQ);
+        $$ = new ASTNodeBinaryOperator($1, ">=", $3);
     }
+;
 
 cast_expr:
-    L_BRACKET TYPE R_BRACKET expr { /* TODO: cast_expr is not yet implemented */
-        ;
+    L_BRACKET TYPE R_BRACKET expr {
+        $$ = new ASTNodeCast(*$2, $4);
     }
+;
 
 call_func_expr:
     ID L_BRACKET args R_BRACKET {
-        auto address = global_symbol_table.get_symbol($1).address;
-        auto level = global_symbol_table.get_symbol_level($1);
-        global_instructions_generator.generate(CAL, level, address);
-        free($1);
+        $$ = new ASTNodeCallFunc(*$1, *$3);
+        delete $1;
+        delete $3;
     }
+;
 
 args:
     args_list {
-        ; /* Empty */
+        $$ = $1;
     }
-    | /* empty */ {
-        ; /* Empty */
+    | %empty {
+        $$ = new std::vector<ASTNodeExpression *>();
     }
+;
 
 args_list:
-    expr COMMA args_list { /* TODO: args_list is not yet implemented */
-        ;
+    args_list COMMA expr {
+        $1->emplace_back($3);
+        $$ = $1;
     }
-    | expr { /* TODO: args_list is not yet implemented */
-        ;
+    | expr {
+        $$ = new std::vector<ASTNodeExpression *>();
+        $$->emplace_back($1);
     }
+;
 
 %%
 
 int yyerror(const char *s) {
-    std::cout << "Error: " << std::string(s) << std::endl;
-    return 0;
+    std::string error = std::string(s);
+    error = error.substr(error.find_first_of(",") + 2, error.length());
+    std::cerr << "Syntax error: " << error << ", in line " << yylineno << ", column " << column << std::endl;
+    return -1;
 }

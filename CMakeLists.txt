@@ -24,6 +24,7 @@ add_executable(
         src/SymbolTable.h
         src/InstructionsGenerator.cpp
         src/InstructionsGenerator.h
+        src/AbstractSyntaxTree.h
         ${LEXER_H_OUT}
         ${LEXER_OUT}
         ${PARSER_H_OUT}
