@@ -40,10 +40,8 @@ Rozsireni vyzadujici slozitejsi instrukcni sadu nez ma PL/0 (3b kazde):
 
 Nase rozsireni (?b):
   1 Lepsi chybove hlasky syntaktickych chyb                                 (DONE)
-  2 Vlastni AST - vice modularni, lepsi chybove hlasky semantiky            (DONE)
-
-_____
-  1 Moznost deklarace promennych vcetne inicializace; pripadne az pozdeji   (DONE)
-  2 Moznost deklarace globalnich promennych kdekoliv (klidne mezi funkcemi)
+  2 Vlastni AST - vice modularni, navrhovy vzor visitor                     (DONE)
+  3 Moznost deklarace promennych vcetne inicializace; pripadne az pozdeji   (DONE)
+  4 Moznost deklarace globalnich promennych kdekoliv (klidne mezi funkcemi)
     (mysleno v ramci globalniho scopu)                                      (DONE)
-  3 Moznost deklarace pouze hlavicky funkce + dodeklarovani pozdeji         (DONE)
+  5 Moznost deklarace pouze hlavicky funkce + dodeklarovani pozdeji         (DONE)

@@ -4,11 +4,49 @@
 #include <vector>
 #include <string>
 
+class ASTNodeBlock;
+class ASTNodeDeclVar;
+class ASTNodeDeclFunc;
+class ASTNodeIf;
+class ASTNodeWhile;
+class ASTNodeFor;
+class ASTNodeReturn;
+class ASTNodeExpressionStatement;
+class ASTNodeIdentifier;
+class ASTNodeIntLiteral;
+class ASTNodeAssignExpression;
+class ASTNodeBinaryOperator;
+class ASTNodeUnaryOperator;
+class ASTNodeCast;
+class ASTNodeCallFunc;
+
+class ASTVisitor {
+public:
+    virtual ~ASTVisitor() = default;
+
+    virtual void visit(ASTNodeBlock *node) = 0;
+    virtual void visit(ASTNodeDeclVar *node) = 0;
+    virtual void visit(ASTNodeDeclFunc *node) = 0;
+    virtual void visit(ASTNodeIf *node) = 0;
+    virtual void visit(ASTNodeWhile *node) = 0;
+    virtual void visit(ASTNodeFor *node) = 0;
+    virtual void visit(ASTNodeReturn *node) = 0;
+    virtual void visit(ASTNodeExpressionStatement *node) = 0;
+    virtual void visit(ASTNodeIdentifier *node) = 0;
+    virtual void visit(ASTNodeIntLiteral *node) = 0;
+    virtual void visit(ASTNodeAssignExpression *node) = 0;
+    virtual void visit(ASTNodeBinaryOperator *node) = 0;
+    virtual void visit(ASTNodeUnaryOperator *node) = 0;
+    virtual void visit(ASTNodeCast *node) = 0;
+    virtual void visit(ASTNodeCallFunc *node) = 0;
+};
+
 class ASTNode {
 public:
     virtual ~ASTNode() = default;
 
     virtual void debug_print() = 0;
+    virtual void accept(ASTVisitor *visitor) = 0;
 };
 
 class ASTNodeExpression : public ASTNode {
@@ -16,6 +54,7 @@ public:
     ~ASTNodeExpression() override = default;
 
     void debug_print() override = 0;
+    void accept(ASTVisitor *visitor) override = 0;
 };
 
 class ASTNodeStatement : public ASTNode {
@@ -23,6 +62,7 @@ public:
     ~ASTNodeStatement() override = default;
 
     void debug_print() override = 0;
+    void accept(ASTVisitor *visitor) override = 0;
 };
 
 class ASTNodeBlock : public ASTNode {
@@ -39,6 +79,9 @@ public:
     void debug_print() override {
         for (auto &statement : statements)
             statement->debug_print();
+    }
+    void accept(ASTVisitor *visitor) override {
+        visitor->visit(this);
     }
 };
 
@@ -58,10 +101,15 @@ public:
     }
 
     void debug_print() override {
+        if (is_const)
+            std::cout << "const ";
         std::cout << "var " << name << " : " << type << " = ";
         if (expression)
             expression->debug_print();
         std::cout << std::endl;
+    }
+    void accept(ASTVisitor *visitor) override {
+        visitor->visit(this);
     }
 };
 
@@ -88,6 +136,9 @@ public:
             std::cout << parameter->name << " : " << parameter->type << ", ";
         std::cout << ") : " << return_type << std::endl;
         block->debug_print();
+    }
+    void accept(ASTVisitor *visitor) override {
+        visitor->visit(this);
     }
 };
 
@@ -117,6 +168,9 @@ public:
             else_block->debug_print();
         }
     }
+    void accept(ASTVisitor *visitor) override {
+        visitor->visit(this);
+    }
 };
 
 class ASTNodeWhile : public ASTNodeStatement {
@@ -138,6 +192,9 @@ public:
         condition->debug_print();
         std::cout << std::endl;
         block->debug_print();
+    }
+    void accept(ASTVisitor *visitor) override {
+        visitor->visit(this);
     }
 };
 
@@ -169,6 +226,9 @@ public:
         std::cout << std::endl;
         block->debug_print();
     }
+    void accept(ASTVisitor *visitor) override {
+        visitor->visit(this);
+    }
 };
 
 class ASTNodeReturn : public ASTNodeStatement {
@@ -189,6 +249,9 @@ public:
             expression->debug_print();
         std::cout << std::endl;
     }
+    void accept(ASTVisitor *visitor) override {
+        visitor->visit(this);
+    }
 };
 
 class ASTNodeExpressionStatement : public ASTNodeStatement {
@@ -207,6 +270,9 @@ public:
         expression->debug_print();
         std::cout << std::endl;
     }
+    void accept(ASTVisitor *visitor) override {
+        visitor->visit(this);
+    }
 };
 
 class ASTNodeIdentifier : public ASTNodeExpression {
@@ -220,6 +286,9 @@ public:
     void debug_print() override {
         std::cout << name;
     }
+    void accept(ASTVisitor *visitor) override {
+        visitor->visit(this);
+    }
 };
 
 class ASTNodeIntLiteral : public ASTNodeExpression {
@@ -232,6 +301,9 @@ public:
 
     void debug_print() override {
         std::cout << value;
+    }
+    void accept(ASTVisitor *visitor) override {
+        visitor->visit(this);
     }
 };
 
@@ -251,6 +323,9 @@ public:
     void debug_print() override {
         std::cout << name << " = ";
         expression->debug_print();
+    }
+    void accept(ASTVisitor *visitor) override {
+        visitor->visit(this);
     }
 };
 
@@ -276,6 +351,9 @@ public:
         right->debug_print();
         std::cout << ")";
     }
+    void accept(ASTVisitor *visitor) override {
+        visitor->visit(this);
+    }
 };
 
 class ASTNodeUnaryOperator : public ASTNodeExpression {
@@ -295,6 +373,9 @@ public:
         std::cout << op;
         expression->debug_print();
     }
+    void accept(ASTVisitor *visitor) override {
+        visitor->visit(this);
+    }
 };
 
 class ASTNodeCast : public ASTNodeExpression {
@@ -313,6 +394,9 @@ public:
     void debug_print() override {
         std::cout << "(" << type << ")";
         expression->debug_print();
+    }
+    void accept(ASTVisitor *visitor) override {
+        visitor->visit(this);
     }
 };
 
@@ -338,5 +422,8 @@ public:
             std::cout << ", ";
         }
         std::cout << ")";
+    }
+    void accept(ASTVisitor *visitor) override {
+        visitor->visit(this);
     }
 };

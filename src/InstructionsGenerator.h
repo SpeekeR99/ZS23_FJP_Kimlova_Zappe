@@ -3,6 +3,9 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <map>
+#include "AbstractSyntaxTree.h"
+#include "SymbolTable.h"
 
 enum InstructionIndex {
     LIT = 0,
@@ -33,6 +36,20 @@ enum Oprs {
     PL0_LEQ
 };
 
+static const std::map<std::string, Oprs> OperatorsTable = {
+    {"+", PL0_ADD},
+    {"-", PL0_SUB},
+    {"*", PL0_MUL},
+    {"/", PL0_DIV},
+    {"%", PL0_MOD},
+    {"==", PL0_EQ},
+    {"!=", PL0_NEQ},
+    {"<", PL0_LT},
+    {">=", PL0_GEQ},
+    {">", PL0_GRT},
+    {"<=", PL0_LEQ}
+};
+
 static const char * const InstructionsTable[] = {
     [LIT] = "LIT",
     [OPR] = "OPR",
@@ -52,23 +69,42 @@ typedef struct Instruction {
     int parameter;
 } Instruction;
 
-class InstructionsGenerator {
+class InstructionsGenerator : public ASTVisitor {
 private:
+    ASTNodeBlock* global_block;
     std::vector<Instruction> instructions;
     std::uint32_t instruction_counter;
-
-public:
-    InstructionsGenerator();
-    ~InstructionsGenerator();
+    SymbolTable symtab;
+    std::map<std::string, int> declared_functions;
 
     void generate(const std::string &instruction, int level, int parameter);
     void generate(InstructionIndex instruction, int level, int parameter);
 
-    [[nodiscard]] std::vector<Instruction> &get_instructions();
     [[nodiscard]] Instruction &get_instruction(std::uint32_t index);
 
     [[nodiscard]] std::uint32_t get_instruction_counter() const;
     void set_instruction_counter(std::uint32_t counter);
-};
 
-extern InstructionsGenerator global_instructions_generator;
+public:
+    explicit InstructionsGenerator(ASTNodeBlock* global_block);
+    ~InstructionsGenerator() override;
+
+    void generate();
+    [[nodiscard]] std::vector<Instruction> &get_instructions();
+
+    void visit(ASTNodeBlock *node) override;
+    void visit(ASTNodeDeclVar *node) override;
+    void visit(ASTNodeDeclFunc *node) override;
+    void visit(ASTNodeIf *node) override;
+    void visit(ASTNodeWhile *node) override;
+    void visit(ASTNodeFor *node) override;
+    void visit(ASTNodeReturn *node) override;
+    void visit(ASTNodeExpressionStatement *node) override;
+    void visit(ASTNodeIdentifier *node) override;
+    void visit(ASTNodeIntLiteral *node) override;
+    void visit(ASTNodeAssignExpression *node) override;
+    void visit(ASTNodeBinaryOperator *node) override;
+    void visit(ASTNodeUnaryOperator *node) override;
+    void visit(ASTNodeCast *node) override;
+    void visit(ASTNodeCallFunc *node) override;
+};
