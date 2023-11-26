@@ -11,6 +11,7 @@
 
     #define HANDLE_COLUMN column = next_column; next_column += strlen(yytext)
 
+    void handle_error(const char* text, int line, int column);
 %}
 
 %option bison-bridge bison-locations yylineno noyywrap
@@ -51,7 +52,15 @@ return      { HANDLE_COLUMN; return TOKEN(RETURN); }
 \>          { HANDLE_COLUMN; return TOKEN(GRT); }
 \>=         { HANDLE_COLUMN; return TOKEN(GRTEQ); }
 [ \t]+      { HANDLE_COLUMN; }
-"\n"        { HANDLE_COLUMN; next_column = 1; }
+\r\n        { HANDLE_COLUMN; next_column = 1; }
+\n          { HANDLE_COLUMN; next_column = 1; }
+\r          { HANDLE_COLUMN; next_column = 1; }
 {id}        { HANDLE_COLUMN; SAVE_TOKEN; return ID; }
+.           { HANDLE_COLUMN; handle_error(yytext, yylineno, column); }
 
 %%
+
+void handle_error(const char* text, int line, int column) {
+    std::cerr << "Lexical error: unexpected character \'" << text << "\', at line " << line << ", column " << column << std::endl;
+    exit(1);
+}
