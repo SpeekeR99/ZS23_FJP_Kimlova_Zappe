@@ -1,7 +1,7 @@
 #include <iostream>
 #include "Parser.h"
 #include "AbstractSyntaxTree.h"
-#include "InstructionsGenerator.h"
+#include "synthesis/InstructionsGenerator.h"
 
 extern ASTNodeBlock *global_block;
 extern FILE *yyin;

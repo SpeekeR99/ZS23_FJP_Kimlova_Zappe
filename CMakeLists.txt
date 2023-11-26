@@ -13,8 +13,8 @@ set(PARSER_OUT ${CMAKE_CURRENT_BINARY_DIR}/Parser.cpp)
 set(LEXER_H_OUT ${CMAKE_CURRENT_BINARY_DIR}/Tokenizer.h)
 set(PARSER_H_OUT ${CMAKE_CURRENT_BINARY_DIR}/Parser.h)
 
-flex_target(LEXER src/tokenizer.l ${LEXER_OUT} DEFINES_FILE ${LEXER_H_OUT})
-bison_target(PARSER src/parser.y ${PARSER_OUT} DEFINES_FILE ${PARSER_H_OUT})
+flex_target(LEXER src/analysis/tokenizer.l ${LEXER_OUT} DEFINES_FILE ${LEXER_H_OUT})
+bison_target(PARSER src/analysis/parser.y ${PARSER_OUT} DEFINES_FILE ${PARSER_H_OUT})
 add_flex_bison_dependency(LEXER PARSER)
 
 add_executable(
@@ -22,9 +22,11 @@ add_executable(
         src/main.cpp
         src/SymbolTable.cpp
         src/SymbolTable.h
-        src/InstructionsGenerator.cpp
-        src/InstructionsGenerator.h
         src/AbstractSyntaxTree.h
+        src/analysis/SyntaxAnalyzer.cpp
+        src/analysis/SyntaxAnalyzer.h
+        src/synthesis/InstructionsGenerator.cpp
+        src/synthesis/InstructionsGenerator.h
         ${LEXER_H_OUT}
         ${LEXER_OUT}
         ${PARSER_H_OUT}

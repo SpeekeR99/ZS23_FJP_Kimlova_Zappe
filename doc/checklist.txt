@@ -38,6 +38,13 @@ Rozsireni vyzadujici slozitejsi instrukcni sadu nez ma PL/0 (3b kazde):
   5 Anonymni vnitrni funkce jako parametry                                  (NOT IMPLEMENTED)
   6 Mechanismus zpracovani vyjimek                                          (NOT IMPLEMENTED)
 
+Dalsi (?b):
+  1 Vlastni interpret (CLI, bez GUI) (6b)                                   (NOT IMPLEMENTED)
+  2 Testovani (az 3b)                                                       (NOT IMPLEMENTED)
+  3 Dokumentace (az 2b)                                                     (NOT DONE)
+  4 Vedeni projektu v GITu (az 2b)                                          (DONE)
+  5 Kvalita kodu (az 2b)                                                    (DONE)
+
 Nase rozsireni (?b):
   1 Lepsi chybove hlasky syntaktickych chyb                                 (DONE)
   2 Vlastni AST - vice modularni, navrhovy vzor visitor                     (DONE)
