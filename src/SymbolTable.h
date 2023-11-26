@@ -6,6 +6,8 @@
 #include <string>
 #include <ranges>
 
+const std::uint32_t ACTIVATION_RECORD_SIZE = 3;
+
 enum ValueType {
     VOID,
     INTEGER,
@@ -23,7 +25,11 @@ typedef struct SymbolTableRecord {
     ValueType type;
     bool is_const;
     std::uint32_t address;
+
+    bool operator==(const SymbolTableRecord &other) const;
 } SymbolTableRecord;
+
+static SymbolTableRecord undefined_record{"", VARIABLE, VOID, false, 0};
 
 class ScopeSymbolTable {
 private:
@@ -71,5 +77,3 @@ public:
 
     friend std::ostream &operator<<(std::ostream &os, const SymbolTable &table);
 };
-
-extern SymbolTable global_symbol_table;

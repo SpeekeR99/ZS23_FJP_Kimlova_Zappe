@@ -70,22 +70,22 @@ program:
 
 decl_var_stmt:
     TYPE ID SEMICOLON {
-        $$ = new ASTNodeDeclVar(*$1, *$2, false, nullptr);
+        $$ = new ASTNodeDeclVar(*$1, *$2, false, nullptr, yylineno);
         delete $1;
         delete $2;
     }
     | CONSTANT TYPE ID SEMICOLON {
-        $$ = new ASTNodeDeclVar(*$2, *$3, true, nullptr);
+        $$ = new ASTNodeDeclVar(*$2, *$3, true, nullptr, yylineno);
         delete $2;
         delete $3;
     }
     | TYPE ID ASSIGN_OP expr SEMICOLON {
-        $$ = new ASTNodeDeclVar(*$1, *$2, false, $4);
+        $$ = new ASTNodeDeclVar(*$1, *$2, false, $4, yylineno);
         delete $1;
         delete $2;
     }
     | CONSTANT TYPE ID ASSIGN_OP expr SEMICOLON {
-        $$ = new ASTNodeDeclVar(*$2, *$3, true, $5);
+        $$ = new ASTNodeDeclVar(*$2, *$3, true, $5, yylineno);
         delete $2;
         delete $3;
     }
@@ -93,13 +93,13 @@ decl_var_stmt:
 
 decl_func_stmt:
     TYPE ID L_BRACKET params R_BRACKET block {
-        $$ = new ASTNodeDeclFunc(*$1, *$2, *$4, $6);
+        $$ = new ASTNodeDeclFunc(*$1, *$2, *$4, $6, yylineno);
         delete $1;
         delete $2;
         delete $4;
     }
     | TYPE ID L_BRACKET params R_BRACKET SEMICOLON {
-        $$ = new ASTNodeDeclFunc(*$1, *$2, *$4, nullptr);
+        $$ = new ASTNodeDeclFunc(*$1, *$2, *$4, nullptr, yylineno);
         delete $1;
         delete $2;
         delete $4;
@@ -117,14 +117,14 @@ params:
 
 params_list:
     params_list COMMA TYPE ID {
-        $1->emplace_back(new ASTNodeDeclVar(*$3, *$4, false, nullptr));
+        $1->emplace_back(new ASTNodeDeclVar(*$3, *$4, false, nullptr, yylineno));
         $$ = $1;
         delete $3;
         delete $4;
     }
     | TYPE ID {
         $$ = new std::vector<ASTNodeDeclVar *>();
-        $$->emplace_back(new ASTNodeDeclVar(*$1, *$2, false, nullptr));
+        $$->emplace_back(new ASTNodeDeclVar(*$1, *$2, false, nullptr, yylineno));
         delete $1;
         delete $2;
     }
@@ -168,13 +168,13 @@ stmt:
         $$ = $1;
     }
     | expr SEMICOLON {
-        $$ = new ASTNodeExpressionStatement($1);
+        $$ = new ASTNodeExpressionStatement($1, yylineno);
     }
 ;
 
 if_stmt:
     IF L_BRACKET expr R_BRACKET block else_stmt {
-        $$ = new ASTNodeIf($3, $5, $6);
+        $$ = new ASTNodeIf($3, $5, $6, yylineno);
     }
 ;
 
@@ -189,36 +189,36 @@ else_stmt:
 
 while_stmt:
     WHILE L_BRACKET expr R_BRACKET block {
-        $$ = new ASTNodeWhile($3, $5);
+        $$ = new ASTNodeWhile($3, $5, yylineno);
     }
 ;
 
 for_stmt:
     FOR L_BRACKET expr SEMICOLON expr SEMICOLON expr R_BRACKET block {
-        auto temp = new ASTNodeExpressionStatement($3);
-        $$ = new ASTNodeFor(temp, $5, $7, $9);
+        auto temp = new ASTNodeExpressionStatement($3, yylineno);
+        $$ = new ASTNodeFor(temp, $5, $7, $9, yylineno);
     }
     | FOR L_BRACKET decl_var_stmt expr SEMICOLON expr R_BRACKET block {
-        $$ = new ASTNodeFor($3, $4, $6, $8);
+        $$ = new ASTNodeFor($3, $4, $6, $8, yylineno);
     }
 ;
 
 return_stmt:
     RETURN expr SEMICOLON {
-        $$ = new ASTNodeReturn($2);
+        $$ = new ASTNodeReturn($2, yylineno);
     }
     | RETURN SEMICOLON {
-        $$ = new ASTNodeReturn(nullptr);
+        $$ = new ASTNodeReturn(nullptr, yylineno);
     }
 ;
 
 expr:
     ID {
-        $$ = new ASTNodeIdentifier(*$1);
+        $$ = new ASTNodeIdentifier(*$1, yylineno);
         delete $1;
     }
     | LITERAL {
-        $$ = new ASTNodeIntLiteral(atoi($1->c_str()));
+        $$ = new ASTNodeIntLiteral(atoi($1->c_str()), yylineno);
         delete $1;
     }
     | L_BRACKET expr R_BRACKET {
@@ -246,75 +246,75 @@ expr:
 
 assign_expr:
     ID ASSIGN_OP expr {
-        $$ = new ASTNodeAssignExpression(*$1, $3);
+        $$ = new ASTNodeAssignExpression(*$1, $3, yylineno);
         delete $1;
     }
 ;
 
 arithm_expr:
     expr ADD expr {
-        $$ = new ASTNodeBinaryOperator($1, "+", $3);
+        $$ = new ASTNodeBinaryOperator($1, "+", $3, yylineno);
     }
     | expr SUB expr {
-        $$ = new ASTNodeBinaryOperator($1, "-", $3);
+        $$ = new ASTNodeBinaryOperator($1, "-", $3, yylineno);
     }
     | expr MUL expr {
-        $$ = new ASTNodeBinaryOperator($1, "*", $3);
+        $$ = new ASTNodeBinaryOperator($1, "*", $3, yylineno);
     }
     | expr DIV expr {
-        $$ = new ASTNodeBinaryOperator($1, "/", $3);
+        $$ = new ASTNodeBinaryOperator($1, "/", $3, yylineno);
     }
     | expr MOD expr {
-        $$ = new ASTNodeBinaryOperator($1, "%", $3);
+        $$ = new ASTNodeBinaryOperator($1, "%", $3, yylineno);
     }
     | ADD expr %prec U_MINUS {
-        $$ = new ASTNodeUnaryOperator("-", $2);
+        $$ = new ASTNodeUnaryOperator("-", $2, yylineno);
     }
 ;
 
 
 logic_expr:
     expr AND expr {
-        $$ = new ASTNodeBinaryOperator($1, "&&", $3);
+        $$ = new ASTNodeBinaryOperator($1, "&&", $3, yylineno);
     }
     | expr OR expr {
-        $$ = new ASTNodeBinaryOperator($1, "||", $3);
+        $$ = new ASTNodeBinaryOperator($1, "||", $3, yylineno);
     }
     | NOT expr {
-        $$ = new ASTNodeUnaryOperator("!", $2);
+        $$ = new ASTNodeUnaryOperator("!", $2, yylineno);
     }
 ;
 
 compare_expr:
     expr EQ expr {
-        $$ = new ASTNodeBinaryOperator($1, "==", $3);
+        $$ = new ASTNodeBinaryOperator($1, "==", $3, yylineno);
     }
     | expr NEQ expr {
-        $$ = new ASTNodeBinaryOperator($1, "!=", $3);
+        $$ = new ASTNodeBinaryOperator($1, "!=", $3, yylineno);
     }
     | expr LESS expr {
-        $$ = new ASTNodeBinaryOperator($1, "<", $3);
+        $$ = new ASTNodeBinaryOperator($1, "<", $3, yylineno);
     }
     | expr LESSEQ expr {
-        $$ = new ASTNodeBinaryOperator($1, "<=", $3);
+        $$ = new ASTNodeBinaryOperator($1, "<=", $3, yylineno);
     }
     | expr GRT expr {
-        $$ = new ASTNodeBinaryOperator($1, ">", $3);
+        $$ = new ASTNodeBinaryOperator($1, ">", $3, yylineno);
     }
     | expr GRTEQ expr {
-        $$ = new ASTNodeBinaryOperator($1, ">=", $3);
+        $$ = new ASTNodeBinaryOperator($1, ">=", $3, yylineno);
     }
 ;
 
 cast_expr:
     L_BRACKET TYPE R_BRACKET expr {
-        $$ = new ASTNodeCast(*$2, $4);
+        $$ = new ASTNodeCast(*$2, $4, yylineno);
     }
 ;
 
 call_func_expr:
     ID L_BRACKET args R_BRACKET {
-        $$ = new ASTNodeCallFunc(*$1, *$3);
+        $$ = new ASTNodeCallFunc(*$1, *$3, yylineno);
         delete $1;
         delete $3;
     }
@@ -346,5 +346,5 @@ int yyerror(const char *s) {
     std::string error = std::string(s);
     error = error.substr(error.find_first_of(",") + 2, error.length());
     std::cerr << "Syntax error: " << error << ", in line " << yylineno << ", column " << column << std::endl;
-    return -1;
+    exit(1);
 }

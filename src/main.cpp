@@ -1,10 +1,6 @@
-#include <iostream>
-#include "Parser.h"
-#include "AbstractSyntaxTree.h"
+#include "analysis/SyntaxAnalyzer.h"
+#include "synthesis/SemanticAnalyzer.h"
 #include "synthesis/InstructionsGenerator.h"
-
-extern ASTNodeBlock *global_block;
-extern FILE *yyin;
 
 int main(int argc, char **argv) {
     if (argc != 2) {
@@ -12,11 +8,13 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
-    yyin = fopen(argv[1], "r");
-    yyparse();
-    fclose(yyin);
+    auto syntax_analyzer = SyntaxAnalyzer(argv[1]);
+    auto program_global_block = syntax_analyzer.analyze();
 
-    auto instructions_generator = InstructionsGenerator(global_block);
+    auto semantic_analyzer = SemanticAnalyzer(program_global_block);
+    semantic_analyzer.analyze();
+
+    auto instructions_generator = InstructionsGenerator(program_global_block);
     instructions_generator.generate();
 
     for (auto &instruction: instructions_generator.get_instructions())

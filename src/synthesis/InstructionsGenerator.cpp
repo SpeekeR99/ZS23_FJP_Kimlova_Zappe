@@ -33,14 +33,14 @@ void InstructionsGenerator::set_instruction_counter(std::uint32_t counter) {
 }
 
 void InstructionsGenerator::generate() {
-    this->symtab.insert_scope(0, 3); /* Offset 3 for activation record */
+    this->symtab.insert_scope(0, ACTIVATION_RECORD_SIZE); /* Offset 3 for activation record */
     this->generate("INT", 0, 0);
 
     for (auto &statement: this->global_block->statements)
         statement->accept(this);
 
     auto num_global_variables = symtab.get_number_of_variables();
-    this->get_instruction(0).parameter = num_global_variables + 3;
+    this->get_instruction(0).parameter = num_global_variables + ACTIVATION_RECORD_SIZE;
 
     auto main_address = symtab.get_symbol("main").address;
     this->generate("CAL", 0, main_address);
@@ -89,8 +89,8 @@ void InstructionsGenerator::visit(ASTNodeDeclFunc *node) { /* TODO: parameters a
     }
 
     if (node->block) {
-        this->symtab.insert_scope(0, 3, true); /* Offset 3 for activation record */
-        this->generate(INT, 0, 3);
+        this->symtab.insert_scope(0, ACTIVATION_RECORD_SIZE, true); /* Offset 3 for activation record */
+        this->generate(INT, 0, ACTIVATION_RECORD_SIZE);
 
         node->block->accept(this);
     } else {
@@ -153,6 +153,8 @@ void InstructionsGenerator::visit(ASTNodeFor *node) { /* TODO: for is not implem
 }
 
 void InstructionsGenerator::visit(ASTNodeReturn *node) { /* TODO: return with expression is not implemented yet */
+    if (node->expression)
+        node->expression->accept(this);
     this->generate(RET, 0, 0);
 }
 

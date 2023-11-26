@@ -25,6 +25,8 @@ add_executable(
         src/AbstractSyntaxTree.h
         src/analysis/SyntaxAnalyzer.cpp
         src/analysis/SyntaxAnalyzer.h
+        src/synthesis/SemanticAnalyzer.cpp
+        src/synthesis/SemanticAnalyzer.h
         src/synthesis/InstructionsGenerator.cpp
         src/synthesis/InstructionsGenerator.h
         ${LEXER_H_OUT}

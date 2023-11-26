@@ -1,7 +1,5 @@
 #include "SymbolTable.h"
 
-SymbolTableRecord undefined_record{"", VARIABLE, VOID, false, 0};
-
 ValueType str_to_val_type(const std::string &str) {
     if (str == "void")
         return VOID;
@@ -13,6 +11,14 @@ ValueType str_to_val_type(const std::string &str) {
         std::cout << "Invalid value type: " << str << std::endl;
         throw std::runtime_error("Invalid value type!");
     }
+}
+
+bool SymbolTableRecord::operator==(const SymbolTableRecord &other) const {
+    return this->name == other.name &&
+           this->symbol_type == other.symbol_type &&
+           this->type == other.type &&
+           this->is_const == other.is_const &&
+           this->address == other.address;
 }
 
 ScopeSymbolTable::ScopeSymbolTable(uint32_t address_base, uint32_t address_offset, bool is_function_scope) : table(), address_base(address_base), address_offset(address_offset), is_function_scope(is_function_scope) {
