@@ -185,8 +185,9 @@ public:
     int line;
     ASTNodeExpression *condition;
     ASTNodeBlock *block;
+    bool is_do_while = false;
 
-    ASTNodeWhile(ASTNodeExpression *condition, ASTNodeBlock *block, int line) : condition(condition), block(block), line(line) {
+    ASTNodeWhile(ASTNodeExpression *condition, ASTNodeBlock *block, bool is_do_while, int line) : condition(condition), block(block), is_do_while(is_do_while), line(line) {
         /* Empty */
     }
 
@@ -196,10 +197,17 @@ public:
     }
 
     void debug_print() override {
-        std::cout << "while ";
-        condition->debug_print();
-        std::cout << std::endl;
-        block->debug_print();
+        if (is_do_while) {
+            std::cout << "do ";
+            block->debug_print();
+            std::cout << "while ";
+            condition->debug_print();
+        } else {
+            std::cout << "while ";
+            condition->debug_print();
+            std::cout << std::endl;
+            block->debug_print();
+        }
     }
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);

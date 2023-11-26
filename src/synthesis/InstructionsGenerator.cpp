@@ -135,17 +135,31 @@ void InstructionsGenerator::visit(ASTNodeWhile *node) {
     auto new_base = current_scope.get_address_base() + current_scope.get_address_offset();
     this->symtab.insert_scope(new_base, 0, false);
 
-    auto condition_instruction_line = this->get_instruction_counter();
-    node->condition->accept(this);
+    if (node->is_do_while) {
+        auto block_instruction_line = this->get_instruction_counter();
+        node->block->accept(this);
 
-    auto jmc_instruction_line = this->get_instruction_counter();
-    this->generate(JMC, 0, 0);
-    node->block->accept(this);
+        node->condition->accept(this);
 
-    this->generate(JMP, 0, condition_instruction_line);
-    auto post_while_instruction_line = this->get_instruction_counter();
-    auto &jmc_instruction = this->get_instruction(jmc_instruction_line);
-    jmc_instruction.parameter = post_while_instruction_line;
+        auto jmc_instruction_line = this->get_instruction_counter();
+        this->generate(JMC, 0, 0);
+        this->generate(JMP, 0, block_instruction_line);
+        auto post_while_instruction_line = this->get_instruction_counter();
+        auto &jmc_instruction = this->get_instruction(jmc_instruction_line);
+        jmc_instruction.parameter = post_while_instruction_line;
+    } else {
+        auto condition_instruction_line = this->get_instruction_counter();
+        node->condition->accept(this);
+
+        auto jmc_instruction_line = this->get_instruction_counter();
+        this->generate(JMC, 0, 0);
+        node->block->accept(this);
+
+        this->generate(JMP, 0, condition_instruction_line);
+        auto post_while_instruction_line = this->get_instruction_counter();
+        auto &jmc_instruction = this->get_instruction(jmc_instruction_line);
+        jmc_instruction.parameter = post_while_instruction_line;
+    }
 }
 
 void InstructionsGenerator::visit(ASTNodeFor *node) { /* TODO: for is not implemented yet */

@@ -94,8 +94,13 @@ void SemanticAnalyzer::visit(ASTNodeIf *node) {
 void SemanticAnalyzer::visit(ASTNodeWhile *node) {
     this->symtab.insert_scope(0, 0, false); /* No need to care about addressing here */
 
-    node->condition->accept(this);
-    node->block->accept(this);
+    if (node->is_do_while) {
+        node->block->accept(this);
+        node->condition->accept(this);
+    } else {
+        node->condition->accept(this);
+        node->block->accept(this);
+    }
 }
 
 void SemanticAnalyzer::visit(ASTNodeFor *node) { /* TODO: for loop is not implemented yet */

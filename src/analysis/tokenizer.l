@@ -35,6 +35,7 @@ const       { HANDLE_COLUMN; return TOKEN(CONSTANT); }
 if          { HANDLE_COLUMN; return TOKEN(IF); }
 else        { HANDLE_COLUMN; return TOKEN(ELSE); }
 while       { HANDLE_COLUMN; return TOKEN(WHILE); }
+do          { HANDLE_COLUMN; return TOKEN(DO); }
 for         { HANDLE_COLUMN; return TOKEN(FOR); }
 return      { HANDLE_COLUMN; return TOKEN(RETURN); }
 \+          { HANDLE_COLUMN; return TOKEN(ADD); }
