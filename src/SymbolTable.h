@@ -14,6 +14,8 @@ enum ValueType {
     BOOLEAN
 };
 
+ValueType str_to_val_type(const std::string &str);
+
 enum SymbolType {
     VARIABLE,
     FUNCTION
@@ -68,10 +70,12 @@ public:
     void remove_scope();
     void insert_symbol(const std::string &name, SymbolType symbol_type, ValueType type, bool is_const, uint32_t address = 0);
     void insert_symbol(const std::string &name, SymbolType symbol_type, const std::string &type, bool is_const, uint32_t address = 0);
+    void change_symbol_name(const std::string &old_name, const std::string &new_name);
 
     [[nodiscard]] SymbolTableRecord &get_symbol(const std::string &name);
     [[nodiscard]] uint32_t get_symbol_level(const std::string &name);
     [[nodiscard]] ScopeSymbolTable &get_scope(uint32_t index);
+    [[nodiscard]] ScopeSymbolTable &get_scope(const std::string &name);
     [[nodiscard]] uint32_t get_number_of_variables() const;
     [[nodiscard]] ScopeSymbolTable &get_current_scope();
 

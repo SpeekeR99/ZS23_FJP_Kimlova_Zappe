@@ -48,9 +48,9 @@ Dalsi (?b):
 Nase rozsireni (?b):
   1 Lepsi chybove hlasky lexikalnich + syntaktickych chyb                   (DONE)
   2 Vlastni AST - vice modularni, navrhovy vzor visitor                     (DONE)
-  3 Moznost deklarace promennych vcetne inicializace; pripadne az pozdeji   (DONE)
   4 Moznost deklarace globalnich promennych kdekoliv (klidne mezi funkcemi)
     (mysleno v ramci globalniho scopu)                                      (DONE)
+  5 Moznost deklarace promennych kdekoliv (nejen na zacatku bloku)          (DONE)
   5 Moznost deklarace pouze hlavicky funkce + dodeklarovani pozdeji         (DONE)
   6 Lepsi chybove hlasky semantickych chyb                                  (KINDA DONE)
   7 Break a Continue                                                        (DONE)

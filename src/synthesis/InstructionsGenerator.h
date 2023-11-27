@@ -75,6 +75,7 @@ private:
     std::vector<Instruction> instructions;
     std::uint32_t instruction_counter;
     SymbolTable symtab;
+    std::vector<int> number_of_declared_variables;
     std::map<std::string, int> declared_functions;
     std::vector<uint32_t> break_stack;
     std::vector<uint32_t> continue_stack;

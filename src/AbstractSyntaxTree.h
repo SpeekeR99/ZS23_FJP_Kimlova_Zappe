@@ -87,6 +87,7 @@ public:
     }
 
     void count_breaks_and_continues();
+    int get_number_of_declared_variables();
 
     void debug_print() override {
         for (auto &statement : statements)

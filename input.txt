@@ -1,49 +1,31 @@
-int main() {
-    int cislo1 = 0;
+void main() {
+    int a = 5;
+    int b;
 
-    while(cislo1 < 3) {
-        int b = 3;
+    void inner() {
+        int c = 100;
+        b = c;
 
-        if (b == 3) {
-            int c = 4;
-            if (c == 4) {
-                if (cislo1 == 0) {
-                    cislo1 = cislo1 + 1;
-                    continue
-        ;       }
-            }
-        }
-
-        while(true) {
-            int a = 5;
-            if (a == 5) {
-                break;
-            }
-        }
-
-        if (cislo1 != 2) {
-            int asdf = 10;
-        }
-        else {
-            break; /* b
-            r
-            e
-            a
-            k
-            */
-        }
-        /*
-        blokovy
-        /* hehe
-        vnoreny
-        /*
-        asdf
-        */
-        */
-        komentar */
-        cislo1 = cislo1 + 1;
-
+        return;
     }
 
-    return 0;
+    int dalsi;
+
+    if (a < 3) {
+        int d = 1;
+        b = d;
+    } else {
+        int d = 2;
+        int e;
+        b = d;
+    }
+
+    int c = 100;
+
+    inner();
+
+    dalsi = 5;
+    int dalsi_dalsi = dalsi;
+
+    return;
 }

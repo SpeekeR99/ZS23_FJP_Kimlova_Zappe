@@ -1,7 +1,7 @@
 #include "InstructionsGenerator.h"
 
 InstructionsGenerator::InstructionsGenerator(ASTNodeBlock *global_block) : global_block(global_block), instructions(),
-                                                                           instruction_counter(0), symtab(),
+                                                                           instruction_counter(0), symtab(), number_of_declared_variables(),
                                                                            declared_functions(), break_stack(),
                                                                            continue_stack() {
     /* Empty */
@@ -49,24 +49,28 @@ void InstructionsGenerator::generate() {
 }
 
 void InstructionsGenerator::visit(ASTNodeBlock *node) {
-    auto instruction_line = this->get_instruction_counter();
-    this->generate(INT, 0, 0);
+    auto number_of_variables = node->get_number_of_declared_variables();
+    this->generate(INT, 0, number_of_variables);
+
+    for (int i = 0; i < number_of_variables; i++)
+        this->symtab.insert_symbol("DUMMY" + std::to_string(i), VARIABLE, static_cast<ValueType>(INT), false);
+    this->number_of_declared_variables.push_back(0);
 
     for (auto &statement: node->statements)
         statement->accept(this);
 
-    auto number_of_variables = this->symtab.get_number_of_variables();
-    auto &last_int_instr = this->get_instruction(instruction_line);
-    last_int_instr.parameter = number_of_variables;
-
-    /* TODO: fix addresses of all sub-scopes between this and BEGIN_BLOCK *OR* change grammar */
-
+    this->number_of_declared_variables.pop_back();
     this->generate(INT, 0, -number_of_variables);
     this->symtab.remove_scope();
 }
 
 void InstructionsGenerator::visit(ASTNodeDeclVar *node) {
-    this->symtab.insert_symbol(node->name, VARIABLE, node->type, node->is_const);
+    std::string dummy_name = "DUMMY" + std::to_string(this->number_of_declared_variables.back()++);
+    this->symtab.change_symbol_name(dummy_name, node->name);
+    auto &symbol = this->symtab.get_symbol(node->name);
+    symbol.type = str_to_val_type(node->type);
+    symbol.is_const = node->is_const;
+
     if (node->expression) {
         node->expression->accept(this);
         auto address = this->symtab.get_symbol(node->name).address;

@@ -96,6 +96,16 @@ void SymbolTable::insert_symbol(const std::string &name, SymbolType symbol_type,
     this->insert_symbol(name, symbol_type, str_to_val_type(type), is_const, address);
 }
 
+void SymbolTable::change_symbol_name(const std::string &old_name, const std::string &new_name) {
+    auto &record = this->get_symbol(old_name);
+    auto &scope = this->get_scope(old_name);
+
+    auto record_deep_copy = SymbolTableRecord{new_name, record.symbol_type, record.type, record.is_const, record.address};
+
+    scope.get_table().erase(old_name);
+    scope.get_table()[new_name] = record_deep_copy;
+}
+
 SymbolTableRecord &SymbolTable::get_symbol(const std::string &name) {
     for (auto &it : std::ranges::reverse_view(this->table)) {
         if (it.exists(name))
@@ -119,6 +129,14 @@ uint32_t SymbolTable::get_symbol_level(const std::string &name) {
 
 ScopeSymbolTable &SymbolTable::get_scope(uint32_t index) {
     return this->table[index];
+}
+
+ScopeSymbolTable &SymbolTable::get_scope(const std::string &name) {
+    for (auto &it : std::ranges::reverse_view(this->table)) {
+        if (it.exists(name))
+            return it;
+    }
+    throw std::runtime_error("Scope not found!");
 }
 
 uint32_t SymbolTable::get_number_of_variables() const {

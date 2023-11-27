@@ -23,3 +23,12 @@ void ASTNodeBlock::count_breaks_and_continues() {
         }
     }
 }
+
+int ASTNodeBlock::get_number_of_declared_variables() {
+    auto declared_variables = 0;
+    for (auto &statement : statements) {
+        if (auto *variable_declaration = dynamic_cast<ASTNodeDeclVar *>(statement))
+            declared_variables++;
+    }
+    return declared_variables;
+}
