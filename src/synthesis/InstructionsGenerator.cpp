@@ -2,7 +2,8 @@
 
 InstructionsGenerator::InstructionsGenerator(ASTNodeBlock *global_block) : global_block(global_block), instructions(),
                                                                            instruction_counter(0), symtab(),
-                                                                           declared_functions() {
+                                                                           declared_functions(), break_stack(),
+                                                                           continue_stack() {
     /* Empty */
 }
 
@@ -131,6 +132,10 @@ void InstructionsGenerator::visit(ASTNodeIf *node) {
 }
 
 void InstructionsGenerator::visit(ASTNodeWhile *node) {
+    node->block->count_breaks_and_continues();
+    node->break_number = node->block->break_number;
+    node->continue_number = node->block->continue_number;
+
     auto current_scope = this->symtab.get_current_scope();
     auto new_base = current_scope.get_address_base() + current_scope.get_address_offset();
     this->symtab.insert_scope(new_base, 0, false);
@@ -139,6 +144,7 @@ void InstructionsGenerator::visit(ASTNodeWhile *node) {
         auto block_instruction_line = this->get_instruction_counter();
         node->block->accept(this);
 
+        auto condition_instruction_line = this->get_instruction_counter();
         node->condition->accept(this);
 
         auto jmc_instruction_line = this->get_instruction_counter();
@@ -147,6 +153,19 @@ void InstructionsGenerator::visit(ASTNodeWhile *node) {
         auto post_while_instruction_line = this->get_instruction_counter();
         auto &jmc_instruction = this->get_instruction(jmc_instruction_line);
         jmc_instruction.parameter = post_while_instruction_line;
+
+        for (int i = 0; i < node->break_number; i++) {
+            auto break_jmp_instruction_line = this->break_stack.back();
+            this->break_stack.pop_back();
+            auto &break_jmp_instruction = this->get_instruction(break_jmp_instruction_line);
+            break_jmp_instruction.parameter = post_while_instruction_line;
+        }
+        for (int i = 0; i < node->continue_number; i++) {
+            auto continue_jmp_instruction_line = this->continue_stack.back();
+            this->continue_stack.pop_back();
+            auto &continue_jmp_instruction = this->get_instruction(continue_jmp_instruction_line);
+            continue_jmp_instruction.parameter = condition_instruction_line;
+        }
     } else {
         auto condition_instruction_line = this->get_instruction_counter();
         node->condition->accept(this);
@@ -159,11 +178,33 @@ void InstructionsGenerator::visit(ASTNodeWhile *node) {
         auto post_while_instruction_line = this->get_instruction_counter();
         auto &jmc_instruction = this->get_instruction(jmc_instruction_line);
         jmc_instruction.parameter = post_while_instruction_line;
+
+        for (int i = 0; i < node->break_number; i++) {
+            auto break_jmp_instruction_line = this->break_stack.back();
+            this->break_stack.pop_back();
+            auto &break_jmp_instruction = this->get_instruction(break_jmp_instruction_line);
+            break_jmp_instruction.parameter = post_while_instruction_line;
+        }
+        for (int i = 0; i < node->continue_number; i++) {
+            auto continue_jmp_instruction_line = this->continue_stack.back();
+            this->continue_stack.pop_back();
+            auto &continue_jmp_instruction = this->get_instruction(continue_jmp_instruction_line);
+            continue_jmp_instruction.parameter = condition_instruction_line;
+        }
     }
 }
 
 void InstructionsGenerator::visit(ASTNodeFor *node) { /* TODO: for is not implemented yet */
     /* Empty */
+}
+
+void InstructionsGenerator::visit(ASTNodeBreakContinue *node) {
+    auto jmp_instruction_line = this->get_instruction_counter();
+    this->generate(JMP, 0, 0);
+    if (node->is_break)
+        this->break_stack.push_back(jmp_instruction_line);
+    else
+        this->continue_stack.push_back(jmp_instruction_line);
 }
 
 void InstructionsGenerator::visit(ASTNodeReturn *node) { /* TODO: return with expression is not implemented yet */

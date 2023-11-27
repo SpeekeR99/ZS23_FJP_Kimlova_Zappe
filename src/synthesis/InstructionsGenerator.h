@@ -76,6 +76,8 @@ private:
     std::uint32_t instruction_counter;
     SymbolTable symtab;
     std::map<std::string, int> declared_functions;
+    std::vector<uint32_t> break_stack;
+    std::vector<uint32_t> continue_stack;
 
     void generate(const std::string &instruction, int level, int parameter);
     void generate(InstructionIndex instruction, int level, int parameter);
@@ -98,6 +100,7 @@ public:
     void visit(ASTNodeIf *node) override;
     void visit(ASTNodeWhile *node) override;
     void visit(ASTNodeFor *node) override;
+    void visit(ASTNodeBreakContinue *node) override;
     void visit(ASTNodeReturn *node) override;
     void visit(ASTNodeExpressionStatement *node) override;
     void visit(ASTNodeIdentifier *node) override;

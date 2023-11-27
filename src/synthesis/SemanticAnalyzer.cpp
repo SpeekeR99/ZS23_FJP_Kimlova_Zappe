@@ -1,6 +1,8 @@
 #include "SemanticAnalyzer.h"
 
-SemanticAnalyzer::SemanticAnalyzer(ASTNodeBlock *global_block) : global_block(global_block), symtab() {
+SemanticAnalyzer::SemanticAnalyzer(ASTNodeBlock *global_block) : global_block(global_block), symtab(),
+                                                                 declared_functions(), assigned_constants(),
+                                                                 current_functions(), current_loop_level(0) {
     /* Empty */
 }
 
@@ -92,6 +94,7 @@ void SemanticAnalyzer::visit(ASTNodeIf *node) {
 }
 
 void SemanticAnalyzer::visit(ASTNodeWhile *node) {
+    this->current_loop_level++;
     this->symtab.insert_scope(0, 0, false); /* No need to care about addressing here */
 
     if (node->is_do_while) {
@@ -101,10 +104,20 @@ void SemanticAnalyzer::visit(ASTNodeWhile *node) {
         node->condition->accept(this);
         node->block->accept(this);
     }
+
+    this->current_loop_level--;
 }
 
 void SemanticAnalyzer::visit(ASTNodeFor *node) { /* TODO: for loop is not implemented yet */
-    /* Empty */
+    this->current_loop_level++;
+    this->current_loop_level--;
+}
+
+void SemanticAnalyzer::visit(ASTNodeBreakContinue *node) {
+    if (!this->current_loop_level) {
+        std::cerr << "Semantic error: break/continue statement outside of loop, error on line " << node->line << std::endl;
+        exit(1);
+    }
 }
 
 void SemanticAnalyzer::visit(ASTNodeReturn *node) {

@@ -53,3 +53,4 @@ Nase rozsireni (?b):
     (mysleno v ramci globalniho scopu)                                      (DONE)
   5 Moznost deklarace pouze hlavicky funkce + dodeklarovani pozdeji         (DONE)
   6 Lepsi chybove hlasky semantickych chyb                                  (KINDA DONE)
+  7 Break a Continue                                                        (DONE)

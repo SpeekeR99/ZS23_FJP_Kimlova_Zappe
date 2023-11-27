@@ -10,6 +10,7 @@ private:
     std::map<std::string, bool> declared_functions;
     std::map<std::string, bool> assigned_constants;
     std::vector<std::pair<std::string, int>> current_functions;
+    int current_loop_level;
 
 public:
     explicit SemanticAnalyzer(ASTNodeBlock* global_block);
@@ -23,6 +24,7 @@ public:
     void visit(ASTNodeIf *node) override;
     void visit(ASTNodeWhile *node) override;
     void visit(ASTNodeFor *node) override;
+    void visit(ASTNodeBreakContinue *node) override;
     void visit(ASTNodeReturn *node) override;
     void visit(ASTNodeExpressionStatement *node) override;
     void visit(ASTNodeIdentifier *node) override;

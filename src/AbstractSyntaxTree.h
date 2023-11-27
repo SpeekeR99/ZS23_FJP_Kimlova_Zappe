@@ -10,6 +10,7 @@ class ASTNodeDeclFunc;
 class ASTNodeIf;
 class ASTNodeWhile;
 class ASTNodeFor;
+class ASTNodeBreakContinue;
 class ASTNodeReturn;
 class ASTNodeExpressionStatement;
 class ASTNodeIdentifier;
@@ -31,6 +32,7 @@ public:
     virtual void visit(ASTNodeIf *node) = 0;
     virtual void visit(ASTNodeWhile *node) = 0;
     virtual void visit(ASTNodeFor *node) = 0;
+    virtual void visit(ASTNodeBreakContinue *node) = 0;
     virtual void visit(ASTNodeReturn *node) = 0;
     virtual void visit(ASTNodeExpressionStatement *node) = 0;
     virtual void visit(ASTNodeIdentifier *node) = 0;
@@ -73,6 +75,8 @@ public:
 class ASTNodeBlock : public ASTNode {
 public:
     int line = -1;
+    int break_number = 0;
+    int continue_number = 0;
     std::vector<ASTNodeStatement *> statements{};
 
     ASTNodeBlock() = default;
@@ -81,6 +85,8 @@ public:
         for (auto &statement : statements)
             delete statement;
     }
+
+    void count_breaks_and_continues();
 
     void debug_print() override {
         for (auto &statement : statements)
@@ -182,12 +188,34 @@ public:
     }
 };
 
+class ASTNodeBreakContinue : public ASTNodeStatement {
+public:
+    int line;
+    bool is_break;
+
+    explicit ASTNodeBreakContinue(bool is_break, int line) : is_break(is_break), line(line) {
+        /* Empty */
+    }
+
+    void debug_print() override {
+        if (is_break)
+            std::cout << "break";
+        else
+            std::cout << "continue";
+    }
+    void accept(ASTVisitor *visitor) override {
+        visitor->visit(this);
+    }
+};
+
 class ASTNodeWhile : public ASTNodeStatement {
 public:
     int line;
     ASTNodeExpression *condition;
     ASTNodeBlock *block;
     bool is_do_while = false;
+    int break_number = 0;
+    int continue_number = 0;
 
     ASTNodeWhile(ASTNodeExpression *condition, ASTNodeBlock *block, bool is_do_while, int line) : condition(condition), block(block), is_do_while(is_do_while), line(line) {
         /* Empty */

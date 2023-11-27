@@ -32,7 +32,7 @@
 
 %nonassoc TYPE ID INT_LITERAL BOOL_LITERAL CONSTANT BEGIN_BLOCK END_BLOCK
 
-%nonassoc IF ELSE FOR WHILE DO RETURN
+%nonassoc IF ELSE FOR WHILE DO BREAK CONTINUE RETURN
 %left AND OR NOT
 %left EQ NEQ LESS LESSEQ GRT GRTEQ
 
@@ -46,7 +46,7 @@
 
 %type <string> ID TYPE INT_LITERAL BOOL_LITERAL ADD SUB MUL DIV MOD AND OR NOT EQ NEQ LESS LESSEQ GRT GRTEQ ASSIGN_OP
 %type <expr> expr arithm_expr logic_expr compare_expr cast_expr call_func_expr assign_expr
-%type <stmt> stmt decl_var_stmt decl_func_stmt if_stmt loop_stmt while_stmt do_while_stmt for_stmt return_stmt
+%type <stmt> stmt decl_var_stmt decl_func_stmt if_stmt loop_stmt while_stmt do_while_stmt for_stmt break_stmt continue_stmt return_stmt
 %type <block> program stmts block else_stmt
 %type <params> params params_list
 %type <args> args args_list
@@ -161,6 +161,12 @@ stmt:
     | loop_stmt {
         $$ = $1;
     }
+    | break_stmt {
+        $$ = $1;
+    }
+    | continue_stmt {
+        $$ = $1;
+    }
     | return_stmt {
         $$ = $1;
     }
@@ -215,6 +221,18 @@ for_stmt:
     }
     | FOR L_BRACKET decl_var_stmt expr SEMICOLON expr R_BRACKET block {
         $$ = new ASTNodeFor($3, $4, $6, $8, yylineno);
+    }
+;
+
+break_stmt:
+    BREAK SEMICOLON {
+        $$ = new ASTNodeBreakContinue(true, yylineno);
+    }
+;
+
+continue_stmt:
+    CONTINUE SEMICOLON {
+        $$ = new ASTNodeBreakContinue(false, yylineno);
     }
 ;
 

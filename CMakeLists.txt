@@ -22,6 +22,7 @@ add_executable(
         src/main.cpp
         src/SymbolTable.cpp
         src/SymbolTable.h
+        src/AbstractSyntaxTree.cpp
         src/AbstractSyntaxTree.h
         src/analysis/SyntaxAnalyzer.cpp
         src/analysis/SyntaxAnalyzer.h
