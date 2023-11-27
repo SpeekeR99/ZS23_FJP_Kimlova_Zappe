@@ -286,7 +286,7 @@ arithm_expr:
     | expr MOD expr {
         $$ = new ASTNodeBinaryOperator($1, "%", $3, yylineno);
     }
-    | ADD expr %prec U_MINUS {
+    | SUB expr %prec U_MINUS {
         $$ = new ASTNodeUnaryOperator("-", $2, yylineno);
     }
 ;
