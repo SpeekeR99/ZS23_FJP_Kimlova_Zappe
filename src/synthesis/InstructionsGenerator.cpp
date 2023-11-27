@@ -186,6 +186,11 @@ void InstructionsGenerator::visit(ASTNodeIntLiteral *node) {
     this->generate(LIT, 0, node->value);
 }
 
+void InstructionsGenerator::visit(ASTNodeBoolLiteral *node) {
+    int value = node->value ? 1 : 0;
+    this->generate(LIT, 0, value);
+}
+
 void InstructionsGenerator::visit(ASTNodeAssignExpression *node) {
     node->expression->accept(this);
     auto address = this->symtab.get_symbol(node->name).address;
@@ -196,12 +201,29 @@ void InstructionsGenerator::visit(ASTNodeAssignExpression *node) {
 void InstructionsGenerator::visit(ASTNodeBinaryOperator *node) {
     node->left->accept(this);
     node->right->accept(this);
-    this->generate(OPR, 0, OperatorsTable.find(node->op)->second);
+
+    if (node->op == "&&") { /* AND: 1 * 1 = 1, 1 * 0 = 0, 0 * 1 = 0, 0 * 0 = 0 */
+        this->generate(OPR, 0, PL0_MUL);
+        this->generate(LIT, 0, 0);
+        this->generate(OPR, 0, PL0_NEQ);
+    } else if (node->op == "||") { /* OR: 1 + 1 = 2, 1 + 0 = 1, 0 + 1 = 1, 0 + 0 = 0 */
+        this->generate(OPR, 0, PL0_ADD);
+        this->generate(LIT, 0, 0);
+        this->generate(OPR, 0, PL0_NEQ);
+    } else {
+        this->generate(OPR, 0, OperatorsTable.find(node->op)->second);
+    }
 }
 
 void InstructionsGenerator::visit(ASTNodeUnaryOperator *node) {
     node->expression->accept(this);
-    this->generate(OPR, 0, PL0_NEG);
+
+    if(node->op == "!") { /* NOT: true == 0 => false, false == 0 => true */
+        this->generate(LIT, 0, 0);
+        this->generate(OPR, 0, PL0_EQ);
+    } else if (node->op == "-") {
+        this->generate(OPR, 0, PL0_NEG);
+    }
 }
 
 void InstructionsGenerator::visit(ASTNodeCast *node) { /* TODO: cast is not implemented yet */

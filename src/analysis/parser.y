@@ -30,7 +30,7 @@
 }
 %define parse.error verbose
 
-%nonassoc TYPE ID LITERAL CONSTANT BEGIN_BLOCK END_BLOCK
+%nonassoc TYPE ID INT_LITERAL BOOL_LITERAL CONSTANT BEGIN_BLOCK END_BLOCK
 
 %nonassoc IF ELSE FOR WHILE DO RETURN
 %left AND OR NOT
@@ -44,7 +44,7 @@
 %left MUL DIV MOD
 %left U_MINUS
 
-%type <string> ID TYPE LITERAL ADD SUB MUL DIV MOD AND OR NOT EQ NEQ LESS LESSEQ GRT GRTEQ ASSIGN_OP
+%type <string> ID TYPE INT_LITERAL BOOL_LITERAL ADD SUB MUL DIV MOD AND OR NOT EQ NEQ LESS LESSEQ GRT GRTEQ ASSIGN_OP
 %type <expr> expr arithm_expr logic_expr compare_expr cast_expr call_func_expr assign_expr
 %type <stmt> stmt decl_var_stmt decl_func_stmt if_stmt loop_stmt while_stmt do_while_stmt for_stmt return_stmt
 %type <block> program stmts block else_stmt
@@ -232,8 +232,12 @@ expr:
         $$ = new ASTNodeIdentifier(*$1, yylineno);
         delete $1;
     }
-    | LITERAL {
+    | INT_LITERAL {
         $$ = new ASTNodeIntLiteral(atoi($1->c_str()), yylineno);
+        delete $1;
+    }
+    | BOOL_LITERAL {
+        $$ = new ASTNodeBoolLiteral(*$1 == "true", yylineno);
         delete $1;
     }
     | L_BRACKET expr R_BRACKET {

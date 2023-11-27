@@ -128,6 +128,10 @@ void SemanticAnalyzer::visit(ASTNodeIntLiteral *node) {
     /* Empty */
 }
 
+void SemanticAnalyzer::visit(ASTNodeBoolLiteral *node) {
+    /* Empty */
+}
+
 void SemanticAnalyzer::visit(ASTNodeAssignExpression *node) {
     auto &symbol = this->symtab.get_symbol(node->name);
     if (symbol == undefined_record) {
@@ -178,4 +182,3 @@ void SemanticAnalyzer::visit(ASTNodeCallFunc *node) {
 //        exit(1);
 //    }
 }
-

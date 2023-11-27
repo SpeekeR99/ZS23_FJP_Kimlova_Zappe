@@ -102,6 +102,7 @@ public:
     void visit(ASTNodeExpressionStatement *node) override;
     void visit(ASTNodeIdentifier *node) override;
     void visit(ASTNodeIntLiteral *node) override;
+    void visit(ASTNodeBoolLiteral *node) override;
     void visit(ASTNodeAssignExpression *node) override;
     void visit(ASTNodeBinaryOperator *node) override;
     void visit(ASTNodeUnaryOperator *node) override;
