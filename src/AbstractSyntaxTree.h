@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include "SymbolTable.h"
 
 class ASTNodeBlock;
 class ASTNodeDeclVar;
@@ -88,6 +89,8 @@ public:
 
     void count_breaks_and_continues();
     int get_number_of_declared_variables();
+    std::vector<int> get_sizeof_variables();
+    bool contains_return_statement();
 
     void debug_print() override {
         for (auto &statement : statements)
@@ -102,12 +105,13 @@ class ASTNodeDeclVar : public ASTNodeStatement {
 public:
     int line;
     std::string type;
+    int sizeof_type;
     std::string name;
     bool is_const;
     ASTNodeExpression *expression;
 
     ASTNodeDeclVar(const std::string &type, const std::string &name, bool is_const, ASTNodeExpression *expression, int line) : name(name), type(type), is_const(is_const), expression(expression), line(line) {
-        /* Empty */
+        sizeof_type = sizeof_val_type(str_to_val_type(type));
     }
 
     ~ASTNodeDeclVar() override {
@@ -173,6 +177,8 @@ public:
         delete block;
         delete else_block;
     }
+
+    bool contains_return_statement();
 
     void debug_print() override {
         std::cout << "if ";

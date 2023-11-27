@@ -40,8 +40,8 @@ void InstructionsGenerator::generate() {
     for (auto &statement: this->global_block->statements)
         statement->accept(this);
 
-    auto num_global_variables = symtab.get_number_of_variables();
-    this->get_instruction(0).parameter = num_global_variables + ACTIVATION_RECORD_SIZE;
+    auto sizeof_global_variables = symtab.get_sizeof_variables();
+    this->get_instruction(0).parameter = sizeof_global_variables + ACTIVATION_RECORD_SIZE;
 
     auto main_address = symtab.get_symbol("main").address;
     this->generate("CAL", 0, main_address);
@@ -50,18 +50,29 @@ void InstructionsGenerator::generate() {
 
 void InstructionsGenerator::visit(ASTNodeBlock *node) {
     auto number_of_variables = node->get_number_of_declared_variables();
-    this->generate(INT, 0, number_of_variables);
+    auto sizeof_variables = node->get_sizeof_variables();
+    auto sum_sizeof = 0;
+    for (auto &sizeof_variable: sizeof_variables)
+        sum_sizeof += sizeof_variable;
+    this->generate(INT, 0, sum_sizeof);
 
-    for (int i = 0; i < number_of_variables; i++)
-        this->symtab.insert_symbol("DUMMY" + std::to_string(i), VARIABLE, static_cast<ValueType>(INT), false);
+    auto size_one = INTEGER;
+//    auto size_two = ...; /* TODO: once added other types, this should be expanded on */
+    for (int i = 0; i < number_of_variables; i++) {
+        if (sizeof_variables[i] == 1) /* TODO: don't forget to expand here too :) */
+            this->symtab.insert_symbol("DUMMY" + std::to_string(i), VARIABLE, size_one, false);
+    }
     this->number_of_declared_variables.push_back(0);
 
     for (auto &statement: node->statements)
         statement->accept(this);
 
     this->number_of_declared_variables.pop_back();
-    this->generate(INT, 0, -number_of_variables);
+    this->generate(INT, 0, -sum_sizeof);
+//    bool was_function = this->symtab.get_current_scope().get_is_function_scope();
     this->symtab.remove_scope();
+//    if (was_function)
+//        this->generate(INT, 0, -1); /* TODO: size of return value */
 }
 
 void InstructionsGenerator::visit(ASTNodeDeclVar *node) {
@@ -211,9 +222,14 @@ void InstructionsGenerator::visit(ASTNodeBreakContinue *node) {
         this->continue_stack.push_back(jmp_instruction_line);
 }
 
-void InstructionsGenerator::visit(ASTNodeReturn *node) { /* TODO: return with expression is not implemented yet */
+void InstructionsGenerator::visit(ASTNodeReturn *node) {
     if (node->expression)
         node->expression->accept(this);
+
+//    auto current_scope = this->symtab.get_current_scope();
+//    auto address_to_stack_bottom = current_scope.get_address_base() + current_scope.get_address_offset();
+//    this->generate(STO, 0, -address_to_stack_bottom - 1); /* TODO: size of return value */
+
     this->generate(RET, 0, 0);
 }
 
@@ -276,7 +292,8 @@ void InstructionsGenerator::visit(ASTNodeCast *node) { /* TODO: cast is not impl
 }
 
 void InstructionsGenerator::visit(ASTNodeCallFunc *node) { /* TODO: arguments are not implemented yet */
-    auto address = this->symtab.get_symbol(node->name).address;
+    auto &symbol = this->symtab.get_symbol(node->name);
     auto level = this->symtab.get_symbol_level(node->name);
-    this->generate(CAL, level, address);
+//    this->generate(INT, 0, sizeof_val_type(symbol.type));
+    this->generate(CAL, level, symbol.address);
 }

@@ -32,3 +32,27 @@ int ASTNodeBlock::get_number_of_declared_variables() {
     }
     return declared_variables;
 }
+
+std::vector<int> ASTNodeBlock::get_sizeof_variables() {
+    std::vector<int> sizeof_variables;
+    for (auto &statement : statements) {
+        if (auto *variable_declaration = dynamic_cast<ASTNodeDeclVar *>(statement))
+            sizeof_variables.push_back(variable_declaration->sizeof_type);
+    }
+    return sizeof_variables;
+}
+
+bool ASTNodeBlock::contains_return_statement() {
+    auto last_statement = this->statements.back();
+    if (auto *return_statement = dynamic_cast<ASTNodeReturn *>(last_statement))
+        return true;
+    else if (auto *if_statement = dynamic_cast<ASTNodeIf *>(last_statement))
+        return if_statement->contains_return_statement();
+    return false;
+}
+
+bool ASTNodeIf::contains_return_statement() {
+    if (this->else_block)
+        return this->block->contains_return_statement() && this->else_block->contains_return_statement();
+    return this->block->contains_return_statement();
+}

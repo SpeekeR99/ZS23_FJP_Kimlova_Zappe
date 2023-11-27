@@ -8,6 +8,7 @@ private:
     ASTNodeBlock* global_block;
     SymbolTable symtab;
     std::map<std::string, bool> declared_functions;
+    std::map<std::string, int> problematic_forward_referenced_functions;
     std::map<std::string, bool> assigned_constants;
     std::vector<std::pair<std::string, int>> current_functions;
     int current_loop_level;

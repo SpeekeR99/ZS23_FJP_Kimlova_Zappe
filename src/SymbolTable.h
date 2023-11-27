@@ -14,7 +14,14 @@ enum ValueType {
     BOOLEAN
 };
 
+enum ValueTypeSize {
+    VOID_SIZE = 0,
+    INTEGER_SIZE = 1,
+    BOOLEAN_SIZE = 1
+};
+
 ValueType str_to_val_type(const std::string &str);
+int sizeof_val_type(ValueType type);
 
 enum SymbolType {
     VARIABLE,
@@ -77,6 +84,7 @@ public:
     [[nodiscard]] ScopeSymbolTable &get_scope(uint32_t index);
     [[nodiscard]] ScopeSymbolTable &get_scope(const std::string &name);
     [[nodiscard]] uint32_t get_number_of_variables() const;
+    [[nodiscard]] uint32_t get_sizeof_variables() const;
     [[nodiscard]] ScopeSymbolTable &get_current_scope();
 
     friend std::ostream &operator<<(std::ostream &os, const SymbolTable &table);

@@ -13,6 +13,19 @@ ValueType str_to_val_type(const std::string &str) {
     }
 }
 
+int sizeof_val_type(ValueType type) {
+    if (type == VOID)
+        return VOID_SIZE;
+    else if (type == INTEGER)
+        return INTEGER_SIZE;
+    else if (type == BOOLEAN)
+        return BOOLEAN_SIZE;
+    else {
+        std::cout << "Invalid value type: " << type << std::endl;
+        throw std::runtime_error("Invalid value type!");
+    }
+}
+
 bool SymbolTableRecord::operator==(const SymbolTableRecord &other) const {
     return this->name == other.name &&
            this->symbol_type == other.symbol_type &&
@@ -28,8 +41,10 @@ ScopeSymbolTable::ScopeSymbolTable(uint32_t address_base, uint32_t address_offse
 ScopeSymbolTable::~ScopeSymbolTable() = default;
 
 void ScopeSymbolTable::insert(const std::string &name, SymbolType symbol_type, ValueType type, bool is_const, uint32_t address) {
-    if (symbol_type == VARIABLE)
-        this->table[name] = SymbolTableRecord{name, symbol_type, type, is_const, this->address_base + this->address_offset++};
+    if (symbol_type == VARIABLE) {
+        this->table[name] = SymbolTableRecord{name, symbol_type, type, is_const, this->address_base + this->address_offset};
+        this->address_offset += sizeof_val_type(type);
+    }
     else
         this->table[name] = SymbolTableRecord{name, symbol_type, type, is_const, address};
 }
@@ -145,6 +160,14 @@ uint32_t SymbolTable::get_number_of_variables() const {
         if (value.symbol_type == VARIABLE)
             number_of_variables++;
     return number_of_variables;
+}
+
+uint32_t SymbolTable::get_sizeof_variables() const {
+    uint32_t sizeof_variables = 0;
+    for (const auto & [key, value] : this->table.back().get_table())
+        if (value.symbol_type == VARIABLE)
+            sizeof_variables += sizeof_val_type(value.type);
+    return sizeof_variables;
 }
 
 ScopeSymbolTable &SymbolTable::get_current_scope() {
