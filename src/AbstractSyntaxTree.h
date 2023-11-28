@@ -24,6 +24,8 @@ class ASTNodeCast;
 class ASTNodeCallFunc;
 class ASTNodeNew;
 class ASTNodeDelete;
+class ASTNodeDereference;
+class ASTNodeDynamicAssignExpression;
 
 class ASTVisitor {
 public:
@@ -48,6 +50,8 @@ public:
     virtual void visit(ASTNodeCallFunc *node) = 0;
     virtual void visit(ASTNodeNew *node) = 0;
     virtual void visit(ASTNodeDelete *node) = 0;
+    virtual void visit(ASTNodeDereference *node) = 0;
+    virtual void visit(ASTNodeDynamicAssignExpression *node) = 0;
 };
 
 class ASTNode {
@@ -552,6 +556,54 @@ public:
     void debug_print() override {
         std::cout << "delete ";
         expression->debug_print();
+    }
+    void accept(ASTVisitor *visitor) override {
+        visitor->visit(this);
+    }
+};
+
+class ASTNodeDereference : public ASTNodeExpression {
+public:
+    int line;
+    ASTNodeExpression *expression;
+    bool is_lvalue = false;
+
+    explicit ASTNodeDereference(ASTNodeExpression *expression, int line) : expression(expression), line(line) {
+        /* Empty */
+    }
+
+    ~ASTNodeDereference() override {
+        delete expression;
+    }
+
+    void debug_print() override {
+        std::cout << "*";
+        expression->debug_print();
+    }
+    void accept(ASTVisitor *visitor) override {
+        visitor->visit(this);
+    }
+};
+
+class ASTNodeDynamicAssignExpression : public ASTNodeExpression {
+public:
+    int line;
+    ASTNodeExpression *left;
+    ASTNodeExpression *right;
+
+    ASTNodeDynamicAssignExpression(ASTNodeExpression *left, ASTNodeExpression *right, int line) : left(left), right(right), line(line) {
+        /* Empty */
+    }
+
+    ~ASTNodeDynamicAssignExpression() override {
+        delete left;
+        delete right;
+    }
+
+    void debug_print() override {
+        left->debug_print();
+        std::cout << " = ";
+        right->debug_print();
     }
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);

@@ -241,3 +241,12 @@ void SemanticAnalyzer::visit(ASTNodeNew *node) {
 void SemanticAnalyzer::visit(ASTNodeDelete *node) {
     node->expression->accept(this);
 }
+
+void SemanticAnalyzer::visit(ASTNodeDereference *node) {
+    node->expression->accept(this);
+}
+
+void SemanticAnalyzer::visit(ASTNodeDynamicAssignExpression *node) {
+    node->left->accept(this);
+    node->right->accept(this);
+}

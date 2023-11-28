@@ -42,7 +42,7 @@
 
 %left ADD SUB
 %left MUL DIV MOD
-%left U_MINUS
+%left U_MINUS DEREF
 
 %type <string> ID TYPE INT_LITERAL BOOL_LITERAL ADD SUB MUL DIV MOD AND OR NOT EQ NEQ LESS LESSEQ GRT GRTEQ ASSIGN_OP
 %type <expr> expr arithm_expr logic_expr compare_expr cast_expr call_func_expr assign_expr memory_expr
@@ -295,6 +295,14 @@ assign_expr:
         $$ = new ASTNodeAssignExpression(*$1, $3, yylineno);
         delete $1;
     }
+    | expr ASSIGN_OP expr {
+        if (auto deref = dynamic_cast<ASTNodeDereference *>($1)) {
+            deref->is_lvalue = true;
+            $$ = new ASTNodeDynamicAssignExpression(deref, $3, yylineno);
+        }
+        else
+            std::cerr << "Syntax error: lvalue required as left operand of assignment, in line " << yylineno << ", column " << column << std::endl;
+    }
 ;
 
 arithm_expr:
@@ -394,6 +402,10 @@ memory_expr:
     | DELETE expr {
         $$ = new ASTNodeDelete($2, yylineno);
     }
+    | DEREF expr {
+        $$ = new ASTNodeDereference($2, yylineno);
+    }
+;
 
 %%
 

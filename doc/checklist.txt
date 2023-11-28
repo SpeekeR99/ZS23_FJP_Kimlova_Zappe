@@ -23,7 +23,7 @@ Slozitejsi rozsireni (2b kazde):
   1 Prikaz GOTO                                                             (NOT IMPLEMENTED)
   2 Datovy typ ratio + operace s nim                                        (NOT IMPLEMENTED)
   3 Slozeny datovy typ (struct, record)                                     (NOT IMPLEMENTED)
-  4 Pole a prace s jeho prvky                                               (NOT IMPLEMENTED)
+  4 Pole a prace s jeho prvky                                               (DONE)
   5 Operator pro porovnani stringu                                          (NOT IMPLEMENTED)
   6 Parametry predavane hodnotou                                            (DONE)
   7 Navratova hodnota podprogramu                                           (DONE)
@@ -31,8 +31,8 @@ Slozitejsi rozsireni (2b kazde):
   9 Anonymni vnitrni funkce                                                 (DONE)
 
 Rozsireni vyzadujici slozitejsi instrukcni sadu nez ma PL/0 (3b kazde):
-  1 Dynamicky prirazovana pamet + pointery                                  (KINDA DONE)
-  2 Parametry predavane odkazem                                             (NOT IMPLEMENTED)
+  1 Dynamicky prirazovana pamet + pointery                                  (DONE)
+  2 Parametry predavane odkazem                                             (DONE)
   3 Objektove konstrukce s polymorfismem                                    (NOT IMPLEMENTED)
   4 Instanceof operator                                                     (NOT IMPLEMENTED)
   5 Anonymni vnitrni funkce jako parametry                                  (NOT IMPLEMENTED)
@@ -52,6 +52,6 @@ Nase rozsireni (?b):
     (mysleno v ramci globalniho scopu)                                      (DONE)
   5 Moznost deklarace promennych kdekoliv (nejen na zacatku bloku)          (DONE)
   5 Moznost deklarace pouze hlavicky funkce + dodeklarovani pozdeji         (DONE)
-  6 Lepsi chybove hlasky semantickych chyb                                  (KINDA DONE)
+  6 Lepsi chybove hlasky semantickych chyb                                  (DONE)
   7 Break a Continue                                                        (DONE)
   8 Navratova hodnota z main je zachycena v globalnim bloku                 (DONE)

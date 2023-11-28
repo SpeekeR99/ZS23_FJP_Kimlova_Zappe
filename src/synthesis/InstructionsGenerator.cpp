@@ -333,3 +333,15 @@ void InstructionsGenerator::visit(ASTNodeDelete *node) {
     node->expression->accept(this);
     this->generate(PL0_DEL, 0, 0);
 }
+
+void InstructionsGenerator::visit(ASTNodeDereference *node) {
+    node->expression->accept(this);
+    if (!node->is_lvalue)
+        this->generate(PL0_LDA, 0, 0);
+}
+
+void InstructionsGenerator::visit(ASTNodeDynamicAssignExpression *node) {
+    node->left->accept(this);
+    node->right->accept(this);
+    this->generate(PL0_STA, 0, 0);
+}
