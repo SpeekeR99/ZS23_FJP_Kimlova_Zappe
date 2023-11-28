@@ -44,9 +44,8 @@ void SemanticAnalyzer::visit(ASTNodeBlock *node) {
         bool contains_return_statement = false;
         if (dynamic_cast<ASTNodeReturn *>(last_statement))
             contains_return_statement = true;
-        else if (auto if_statement = dynamic_cast<ASTNodeIf *>(last_statement)) {
+        else if (auto if_statement = dynamic_cast<ASTNodeIf *>(last_statement))
             contains_return_statement = if_statement->contains_return_statement();
-        }
 
         if (!contains_return_statement) {
             std::cerr << "Semantic error: function \"" << current_function.first << "\" does not contain a return statement, error on line " << current_function.second << std::endl;

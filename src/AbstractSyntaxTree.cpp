@@ -43,16 +43,20 @@ std::vector<int> ASTNodeBlock::get_sizeof_variables() {
 }
 
 bool ASTNodeBlock::contains_return_statement() {
+    if (this->statements.empty())
+        return false;
+
     auto last_statement = this->statements.back();
     if (auto *return_statement = dynamic_cast<ASTNodeReturn *>(last_statement))
         return true;
     else if (auto *if_statement = dynamic_cast<ASTNodeIf *>(last_statement))
         return if_statement->contains_return_statement();
+
     return false;
 }
 
 bool ASTNodeIf::contains_return_statement() {
     if (this->else_block)
         return this->block->contains_return_statement() && this->else_block->contains_return_statement();
-    return this->block->contains_return_statement();
+    return false; /* If last statement was if, it should contain else to cover all cases */
 }
