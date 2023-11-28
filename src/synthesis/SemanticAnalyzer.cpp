@@ -228,3 +228,16 @@ void SemanticAnalyzer::visit(ASTNodeCallFunc *node) {
     if (!this->declared_functions[node->name])
         problematic_forward_referenced_functions[node->name] = node->line;
 }
+
+void SemanticAnalyzer::visit(ASTNodeNew *node) {
+    if (node->type == "void") {
+        std::cerr << "Semantic error: cannot allocate void, error on line " << node->line << std::endl;
+        exit(1);
+    }
+
+    node->expression->accept(this);
+}
+
+void SemanticAnalyzer::visit(ASTNodeDelete *node) {
+    node->expression->accept(this);
+}

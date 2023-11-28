@@ -31,7 +31,7 @@ Slozitejsi rozsireni (2b kazde):
   9 Anonymni vnitrni funkce                                                 (DONE)
 
 Rozsireni vyzadujici slozitejsi instrukcni sadu nez ma PL/0 (3b kazde):
-  1 Dynamicky prirazovana pamet + pointery                                  (NOT IMPLEMENTED)
+  1 Dynamicky prirazovana pamet + pointery                                  (KINDA DONE)
   2 Parametry predavane odkazem                                             (NOT IMPLEMENTED)
   3 Objektove konstrukce s polymorfismem                                    (NOT IMPLEMENTED)
   4 Instanceof operator                                                     (NOT IMPLEMENTED)

@@ -22,6 +22,8 @@ class ASTNodeBinaryOperator;
 class ASTNodeUnaryOperator;
 class ASTNodeCast;
 class ASTNodeCallFunc;
+class ASTNodeNew;
+class ASTNodeDelete;
 
 class ASTVisitor {
 public:
@@ -44,6 +46,8 @@ public:
     virtual void visit(ASTNodeUnaryOperator *node) = 0;
     virtual void visit(ASTNodeCast *node) = 0;
     virtual void visit(ASTNodeCallFunc *node) = 0;
+    virtual void visit(ASTNodeNew *node) = 0;
+    virtual void visit(ASTNodeDelete *node) = 0;
 };
 
 class ASTNode {
@@ -502,6 +506,52 @@ public:
             std::cout << ", ";
         }
         std::cout << ")";
+    }
+    void accept(ASTVisitor *visitor) override {
+        visitor->visit(this);
+    }
+};
+
+class ASTNodeNew : public ASTNodeExpression {
+public:
+    int line;
+    std::string type;
+    ASTNodeExpression *expression;
+
+    ASTNodeNew(const std::string &type, ASTNodeExpression *expression, int line) : type(type), expression(expression), line(line) {
+        /* Empty */
+    }
+
+    ~ASTNodeNew() override {
+        delete expression;
+    }
+
+    void debug_print() override {
+        std::cout << "new " << type << "[";
+        expression->debug_print();
+        std::cout << "]";
+    }
+    void accept(ASTVisitor *visitor) override {
+        visitor->visit(this);
+    }
+};
+
+class ASTNodeDelete : public ASTNodeExpression {
+public:
+    int line;
+    ASTNodeExpression *expression;
+
+    explicit ASTNodeDelete(ASTNodeExpression *expression, int line) : expression(expression), line(line) {
+        /* Empty */
+    }
+
+    ~ASTNodeDelete() override {
+        delete expression;
+    }
+
+    void debug_print() override {
+        std::cout << "delete ";
+        expression->debug_print();
     }
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);

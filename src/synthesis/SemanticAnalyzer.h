@@ -36,4 +36,6 @@ public:
     void visit(ASTNodeUnaryOperator *node) override;
     void visit(ASTNodeCast *node) override;
     void visit(ASTNodeCallFunc *node) override;
+    void visit(ASTNodeNew *node) override;
+    void visit(ASTNodeDelete *node) override;
 };

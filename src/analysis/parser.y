@@ -32,7 +32,7 @@
 
 %nonassoc TYPE ID INT_LITERAL BOOL_LITERAL CONSTANT BEGIN_BLOCK END_BLOCK
 
-%nonassoc IF ELSE FOR WHILE DO BREAK CONTINUE RETURN
+%nonassoc IF ELSE FOR WHILE DO BREAK CONTINUE RETURN NEW DELETE
 %left AND OR NOT
 %left EQ NEQ LESS LESSEQ GRT GRTEQ
 
@@ -45,7 +45,7 @@
 %left U_MINUS
 
 %type <string> ID TYPE INT_LITERAL BOOL_LITERAL ADD SUB MUL DIV MOD AND OR NOT EQ NEQ LESS LESSEQ GRT GRTEQ ASSIGN_OP
-%type <expr> expr arithm_expr logic_expr compare_expr cast_expr call_func_expr assign_expr
+%type <expr> expr arithm_expr logic_expr compare_expr cast_expr call_func_expr assign_expr memory_expr
 %type <stmt> stmt decl_var_stmt decl_func_stmt if_stmt loop_stmt while_stmt do_while_stmt for_stmt jump_stmt break_stmt continue_stmt return_stmt
 %type <block> program stmts block else_stmt
 %type <params> params params_list
@@ -285,6 +285,9 @@ expr:
     | call_func_expr {
         $$ = $1;
     }
+    | memory_expr {
+        $$ = $1;
+    }
 ;
 
 assign_expr:
@@ -382,6 +385,15 @@ args_list:
         $$->emplace_back($1);
     }
 ;
+
+memory_expr:
+    NEW L_BRACKET TYPE COMMA expr R_BRACKET {
+        $$ = new ASTNodeNew(*$3, $5, yylineno);
+        delete $3;
+    }
+    | DELETE expr {
+        $$ = new ASTNodeDelete($2, yylineno);
+    }
 
 %%
 

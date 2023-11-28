@@ -8,16 +8,24 @@
 #include "SymbolTable.h"
 
 enum InstructionIndex {
-    LIT = 0,
-    OPR,
-    LOD,
-    STO,
-    CAL,
-    INT,
-    JMP,
-    JMC,
-    RET,
-    NUM_OF_INSTRUCTIONS
+    PL0_LIT = 0,
+    PL0_OPR,
+    PL0_LOD,
+    PL0_STO,
+    PL0_CAL,
+    PL0_INT,
+    PL0_JMP,
+    PL0_JMC,
+    PL0_RET,
+    PL0_REA,
+    PL0_WRI,
+    PL0_NEW,
+    PL0_DEL,
+    PL0_LDA,
+    PL0_STA,
+    PL0_PLD,
+    PL0_PST,
+    PL0_NUM_OF_INSTRUCTIONS
 };
 
 enum Oprs {
@@ -51,15 +59,23 @@ static const std::map<std::string, Oprs> OperatorsTable = {
 };
 
 static const char * const InstructionsTable[] = {
-    [LIT] = "LIT",
-    [OPR] = "OPR",
-    [LOD] = "LOD",
-    [STO] = "STO",
-    [CAL] = "CAL",
-    [INT] = "INT",
-    [JMP] = "JMP",
-    [JMC] = "JMC",
-    [RET] = "RET"
+    [PL0_LIT] = "LIT",
+    [PL0_OPR] = "OPR",
+    [PL0_LOD] = "LOD",
+    [PL0_STO] = "STO",
+    [PL0_CAL] = "CAL",
+    [PL0_INT] = "INT",
+    [PL0_JMP] = "JMP",
+    [PL0_JMC] = "JMC",
+    [PL0_RET] = "RET",
+    [PL0_REA] = "REA",
+    [PL0_WRI] = "WRI",
+    [PL0_NEW] = "NEW",
+    [PL0_DEL] = "DEL",
+    [PL0_LDA] = "LDA",
+    [PL0_STA] = "STA",
+    [PL0_PLD] = "PLD",
+    [PL0_PST] = "PST"
 };
 
 typedef struct Instruction {
@@ -113,4 +129,6 @@ public:
     void visit(ASTNodeUnaryOperator *node) override;
     void visit(ASTNodeCast *node) override;
     void visit(ASTNodeCallFunc *node) override;
+    void visit(ASTNodeNew *node) override;
+    void visit(ASTNodeDelete *node) override;
 };

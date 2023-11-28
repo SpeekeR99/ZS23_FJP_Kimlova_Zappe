@@ -48,6 +48,8 @@ for                     { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(FOR
 break                   { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(BREAK); } }
 continue                { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(CONTINUE); } }
 return                  { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(RETURN); } }
+new                     { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(NEW); } }
+delete                  { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(DELETE); } }
 \+                      { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(ADD); } }
 \-                      { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(SUB); } }
 \*                      { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(MUL); } }
