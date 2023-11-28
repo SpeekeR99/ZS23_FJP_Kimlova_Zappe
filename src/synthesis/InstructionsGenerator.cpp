@@ -44,6 +44,7 @@ void InstructionsGenerator::generate() {
     this->get_instruction(0).parameter = sizeof_global_variables + ACTIVATION_RECORD_SIZE;
 
     auto main_address = symtab.get_symbol("main").address;
+    this->generate("INT", 0, 1);
     this->generate("CAL", 0, main_address);
     this->generate("RET", 0, 0);
 }
@@ -69,10 +70,10 @@ void InstructionsGenerator::visit(ASTNodeBlock *node) {
 
     this->number_of_declared_variables.pop_back();
     this->generate(INT, 0, -sum_sizeof);
-//    bool was_function = this->symtab.get_current_scope().get_is_function_scope();
+    bool was_function = this->symtab.get_current_scope().get_is_function_scope();
     this->symtab.remove_scope();
-//    if (was_function)
-//        this->generate(INT, 0, -1); /* TODO: size of return value */
+    if (was_function)
+        this->generate(INT, 0, -1); /* TODO: size of return value */
 }
 
 void InstructionsGenerator::visit(ASTNodeDeclVar *node) {
@@ -226,9 +227,7 @@ void InstructionsGenerator::visit(ASTNodeReturn *node) {
     if (node->expression)
         node->expression->accept(this);
 
-//    auto current_scope = this->symtab.get_current_scope();
-//    auto address_to_stack_bottom = current_scope.get_address_base() + current_scope.get_address_offset();
-//    this->generate(STO, 0, -address_to_stack_bottom - 1); /* TODO: size of return value */
+    this->generate(STO, 0, -1); /* TODO: size of return value */
 
     this->generate(RET, 0, 0);
 }
@@ -294,6 +293,6 @@ void InstructionsGenerator::visit(ASTNodeCast *node) { /* TODO: cast is not impl
 void InstructionsGenerator::visit(ASTNodeCallFunc *node) { /* TODO: arguments are not implemented yet */
     auto &symbol = this->symtab.get_symbol(node->name);
     auto level = this->symtab.get_symbol_level(node->name);
-//    this->generate(INT, 0, sizeof_val_type(symbol.type));
+    this->generate(INT, 0, sizeof_val_type(symbol.type));
     this->generate(CAL, level, symbol.address);
 }

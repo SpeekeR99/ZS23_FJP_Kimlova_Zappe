@@ -19,6 +19,10 @@ void SemanticAnalyzer::analyze() {
         std::cerr << "Semantic error: main function not found" << std::endl;
         exit(1);
     }
+    if (main_func.type != INTEGER) {
+        std::cerr << "Semantic error: main function must return integer" << std::endl;
+        exit(1);
+    }
 
     if (!problematic_forward_referenced_functions.empty()) {
         for (auto &problematic_forward_referenced_function: problematic_forward_referenced_functions)

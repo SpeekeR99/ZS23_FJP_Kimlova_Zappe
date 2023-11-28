@@ -1,10 +1,23 @@
 int a() {
-    int b = 3;
-    return b;
+    int a = 5;
+
+    int inner() {
+        int b = 6;
+        return b;
+    }
+
+    return a + inner();
 }
 
 int main() {
-    int c = 10;
+    int i = 3;
+    int j = a();
+
     a();
-    return;
+
+    int k = 0;
+
+    a();
+
+    return 0;
 }

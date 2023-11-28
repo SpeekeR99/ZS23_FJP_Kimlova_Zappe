@@ -26,7 +26,7 @@ Slozitejsi rozsireni (2b kazde):
   4 Pole a prace s jeho prvky                                               (NOT IMPLEMENTED)
   5 Operator pro porovnani stringu                                          (NOT IMPLEMENTED)
   6 Parametry predavane hodnotou                                            (NOT IMPLEMENTED)
-  7 Navratova hodnota podprogramu                                           (NOT IMPLEMENTED)
+  7 Navratova hodnota podprogramu                                           (DONE)
   8 Objekty bez polymorfismu                                                (NOT IMPLEMENTED)
   9 Anonymni vnitrni funkce                                                 (DONE)
 
@@ -54,3 +54,4 @@ Nase rozsireni (?b):
   5 Moznost deklarace pouze hlavicky funkce + dodeklarovani pozdeji         (DONE)
   6 Lepsi chybove hlasky semantickych chyb                                  (KINDA DONE)
   7 Break a Continue                                                        (DONE)
+  8 Navratova hodnota z main je zachycena v globalnim bloku                 (DONE)
