@@ -92,10 +92,19 @@ void SemanticAnalyzer::visit(ASTNodeDeclFunc *node) {
 
     if (node->block) {
         this->symtab.insert_scope(0, 0, true); /* No need to care about addressing here */
+
+        auto &decl_func_symbol = this->symtab.get_symbol(node->name);
+        for (auto &parameter: node->parameters) {
+            parameter->accept(this);
+            decl_func_symbol.parameters.push_back(this->symtab.get_symbol(parameter->name));
+        }
+
         this->current_functions.emplace_back(node->name, node->line);
         this->declared_functions[node->name] = true;
+
         if (this->problematic_forward_referenced_functions.find(node->name) != this->problematic_forward_referenced_functions.end())
             this->problematic_forward_referenced_functions.erase(node->name);
+
         node->block->accept(this);
         this->current_functions.pop_back();
     }
@@ -208,6 +217,11 @@ void SemanticAnalyzer::visit(ASTNodeCallFunc *node) {
 
     if (symbol.symbol_type != FUNCTION) {
         std::cerr << "Semantic error: \"" << node->name << "\" is not a function, error on line " << node->line << std::endl;
+        exit(1);
+    }
+
+    if (symbol.parameters.size() != node->arguments.size()) {
+        std::cerr << "Semantic error: function \"" << node->name << "\" expects " << symbol.parameters.size() << " arguments, " << node->arguments.size() << " given, error on line " << node->line << std::endl;
         exit(1);
     }
 

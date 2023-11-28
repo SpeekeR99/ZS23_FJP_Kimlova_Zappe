@@ -11,6 +11,8 @@ int main(int argc, char **argv) {
     auto syntax_analyzer = SyntaxAnalyzer(argv[1]);
     auto program_global_block = syntax_analyzer.analyze();
 
+//    program_global_block->debug_print();
+
     auto semantic_analyzer = SemanticAnalyzer(program_global_block);
     semantic_analyzer.analyze();
 

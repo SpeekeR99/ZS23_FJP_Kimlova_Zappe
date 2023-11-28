@@ -3,7 +3,7 @@
 InstructionsGenerator::InstructionsGenerator(ASTNodeBlock *global_block) : global_block(global_block), instructions(),
                                                                            instruction_counter(0), symtab(), number_of_declared_variables(),
                                                                            declared_functions(), break_stack(),
-                                                                           continue_stack() {
+                                                                           continue_stack(), sizeof_params_stack() {
     /* Empty */
 }
 
@@ -50,12 +50,29 @@ void InstructionsGenerator::generate() {
 }
 
 void InstructionsGenerator::visit(ASTNodeBlock *node) {
+    auto is_functional_block = this->symtab.get_current_scope().get_is_function_scope();
+    auto sizeof_params = 0;
+    auto lod_address = -this->sizeof_params_stack.size() - 1;
+    std::vector<int> lod_addresses;
+    if (is_functional_block) {
+        for (auto &sizeof_param: this->sizeof_params_stack) {
+            sizeof_params += sizeof_param;
+            lod_addresses.push_back(lod_address++);
+        }
+        this->sizeof_params_stack.clear();
+    }
     auto number_of_variables = node->get_number_of_declared_variables();
     auto sizeof_variables = node->get_sizeof_variables();
-    auto sum_sizeof = 0;
+    auto sum_sizeof = sizeof_params;
     for (auto &sizeof_variable: sizeof_variables)
         sum_sizeof += sizeof_variable;
     this->generate(INT, 0, sum_sizeof);
+
+    auto sto_param_address = ACTIVATION_RECORD_SIZE;
+    for (auto &lod_param_address: lod_addresses) {
+        this->generate(LOD, 0, lod_param_address);
+        this->generate(STO, 0, sto_param_address++);
+    }
 
     auto size_one = INTEGER;
 //    auto size_two = ...; /* TODO: once added other types, this should be expanded on */
@@ -70,10 +87,7 @@ void InstructionsGenerator::visit(ASTNodeBlock *node) {
 
     this->number_of_declared_variables.pop_back();
     this->generate(INT, 0, -sum_sizeof);
-    bool was_function = this->symtab.get_current_scope().get_is_function_scope();
     this->symtab.remove_scope();
-    if (was_function)
-        this->generate(INT, 0, -1); /* TODO: size of return value */
 }
 
 void InstructionsGenerator::visit(ASTNodeDeclVar *node) {
@@ -91,6 +105,7 @@ void InstructionsGenerator::visit(ASTNodeDeclVar *node) {
 }
 
 void InstructionsGenerator::visit(ASTNodeDeclFunc *node) { /* TODO: parameters are not implemented yet */
+    auto jump_over_func_instr_index = this->get_instruction_counter();
     this->generate(JMP, 0, 0);
     auto func_address = this->get_instruction_counter();
     auto &symbol = this->symtab.get_symbol(node->name);
@@ -109,12 +124,18 @@ void InstructionsGenerator::visit(ASTNodeDeclFunc *node) { /* TODO: parameters a
         this->symtab.insert_scope(0, ACTIVATION_RECORD_SIZE, true); /* Offset 3 for activation record */
         this->generate(INT, 0, ACTIVATION_RECORD_SIZE);
 
+        auto &decl_func_symbol = this->symtab.get_symbol(node->name);
+        for (auto &parameter: node->parameters) {
+            this->symtab.insert_symbol(parameter->name, VARIABLE, str_to_val_type(parameter->type), false);
+            decl_func_symbol.parameters.push_back(this->symtab.get_symbol(parameter->name));
+            this->sizeof_params_stack.push_back(sizeof_val_type(str_to_val_type(parameter->type)));
+        }
+
         node->block->accept(this);
     } else {
         this->generate(JMP, 0, 0);
     }
 
-    auto jump_over_func_instr_index = func_address - 1;
     auto &jump_over_func_instr = this->get_instruction(jump_over_func_instr_index);
     jump_over_func_instr.parameter = this->get_instruction_counter();
 }
@@ -293,6 +314,10 @@ void InstructionsGenerator::visit(ASTNodeCast *node) { /* TODO: cast is not impl
 void InstructionsGenerator::visit(ASTNodeCallFunc *node) { /* TODO: arguments are not implemented yet */
     auto &symbol = this->symtab.get_symbol(node->name);
     auto level = this->symtab.get_symbol_level(node->name);
+
+    for (auto &argument: node->arguments)
+        argument->accept(this);
+
     this->generate(INT, 0, sizeof_val_type(symbol.type));
     this->generate(CAL, level, symbol.address);
 }

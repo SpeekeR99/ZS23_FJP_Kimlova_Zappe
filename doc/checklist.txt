@@ -25,7 +25,7 @@ Slozitejsi rozsireni (2b kazde):
   3 Slozeny datovy typ (struct, record)                                     (NOT IMPLEMENTED)
   4 Pole a prace s jeho prvky                                               (NOT IMPLEMENTED)
   5 Operator pro porovnani stringu                                          (NOT IMPLEMENTED)
-  6 Parametry predavane hodnotou                                            (NOT IMPLEMENTED)
+  6 Parametry predavane hodnotou                                            (DONE)
   7 Navratova hodnota podprogramu                                           (DONE)
   8 Objekty bez polymorfismu                                                (NOT IMPLEMENTED)
   9 Anonymni vnitrni funkce                                                 (DONE)

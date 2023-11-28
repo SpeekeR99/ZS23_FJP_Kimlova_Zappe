@@ -79,6 +79,7 @@ private:
     std::map<std::string, int> declared_functions;
     std::vector<uint32_t> break_stack;
     std::vector<uint32_t> continue_stack;
+    std::vector<uint32_t> sizeof_params_stack;
 
     void generate(const std::string &instruction, int level, int parameter);
     void generate(InstructionIndex instruction, int level, int parameter);
