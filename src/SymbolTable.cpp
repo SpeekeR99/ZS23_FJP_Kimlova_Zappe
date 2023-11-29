@@ -1,5 +1,10 @@
 #include "SymbolTable.h"
 
+std::vector<std::string> SymbolTable::builtin_functions = {
+        "print_num",
+        "read_num"
+};
+
 ValueType str_to_val_type(const std::string &str) {
     if (str == "void")
         return VOID;
@@ -57,6 +62,13 @@ bool ScopeSymbolTable::exists(const std::string &name) {
     return this->table.find(name) != this->table.end();
 }
 
+
+void ScopeSymbolTable::remove(const std::string &name) {
+    auto &symbol = this->get(name);
+    this->address_offset -= sizeof_val_type(symbol.type);
+    this->table.erase(name);
+}
+
 SymbolTableRecord &ScopeSymbolTable::get(const std::string &name) {
     if (this->exists(name))
         return this->table[name];
@@ -93,6 +105,14 @@ SymbolTable::SymbolTable() : table() {
     /* Empty */
 }
 
+void SymbolTable::init_builtin_functions() {
+    this->insert_symbol("print_num", FUNCTION, "void", false, 0);
+    auto &print_num = this->get_symbol("print_num");
+    auto print_param = SymbolTableRecord{"__print_num_param__", VARIABLE, str_to_val_type("int"), false};
+    print_num.parameters.emplace_back(print_param);
+    this->insert_symbol("read_num", FUNCTION, "int", false, 0);
+}
+
 SymbolTable::~SymbolTable() = default;
 
 void SymbolTable::insert_scope(uint32_t address_base, uint32_t address_offset, bool is_function_scope) {
@@ -119,6 +139,11 @@ void SymbolTable::change_symbol_name(const std::string &old_name, const std::str
 
     scope.get_table().erase(old_name);
     scope.get_table()[new_name] = record_deep_copy;
+}
+
+void SymbolTable::remove_symbol(const std::string &name) {
+    auto &scope = this->get_scope(name);
+    scope.remove(name);
 }
 
 SymbolTableRecord &SymbolTable::get_symbol(const std::string &name) {

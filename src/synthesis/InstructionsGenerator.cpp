@@ -1,6 +1,6 @@
 #include "InstructionsGenerator.h"
 
-InstructionsGenerator::InstructionsGenerator(ASTNodeBlock *global_block) : global_block(global_block), instructions(),
+InstructionsGenerator::InstructionsGenerator(ASTNodeBlock *global_block, std::vector<std::string> &used_builtin_functions) : global_block(global_block), used_builtin_functions(used_builtin_functions), instructions(),
                                                                            instruction_counter(0), symtab(), number_of_declared_variables(),
                                                                            declared_functions(), break_stack(),
                                                                            continue_stack(), sizeof_params_stack() {
@@ -33,20 +33,166 @@ void InstructionsGenerator::set_instruction_counter(std::uint32_t counter) {
     this->instruction_counter = counter;
 }
 
+void InstructionsGenerator::gen_print_num() {
+    this->symtab.insert_scope(0, ACTIVATION_RECORD_SIZE, true);
+
+    this->generate(PL0_INT, 0, ACTIVATION_RECORD_SIZE + 1);
+    this->symtab.insert_symbol("__TEMP_PRINT__", VARIABLE, INTEGER, false);
+    this->generate(PL0_LOD, 0, -1); /* Load first and only argument */
+    auto temp_print_address = this->symtab.get_symbol("__TEMP_PRINT__").address;
+    this->generate(PL0_STO, 0, temp_print_address); /* Store the argument in the first temporary variable */
+
+    std::vector<int> jmc_addresses;
+    std::vector<int> temp_addresses;
+    const int max_int_digits = 10;
+    for (int i = 0; i < max_int_digits; i++) {
+        this->symtab.insert_symbol("__TEMP_" + std::to_string(i) + "__", VARIABLE, INTEGER, false);
+        auto temp_address = this->symtab.get_symbol("__TEMP_" + std::to_string(i) + "__").address;
+        temp_addresses.push_back(temp_address);
+    }
+
+    this->generate(PL0_INT, 0, max_int_digits);
+    for (auto &temp_address: temp_addresses) {
+        this->generate(PL0_LIT, 0, 0);
+        this->generate(PL0_STO, 0, temp_address);
+    }
+
+    for (int i = 0; i < max_int_digits; i++) {
+        this->generate(PL0_LOD, 0, temp_print_address); /* Load the number */
+        this->generate(PL0_LIT, 0, 10);
+        this->generate(PL0_OPR, 0, PL0_MOD); /* Divide the number by 10 */
+        this->generate(PL0_STO, 0, temp_addresses[i]); /* Store the result back in the temporary variable */
+        this->generate(PL0_LOD, 0, temp_print_address); /* Load the number */
+        this->generate(PL0_LIT, 0, 10);
+        this->generate(PL0_OPR, 0, PL0_DIV); /* Divide the number by 10 */
+        this->generate(PL0_STO, 0, temp_print_address); /* Store the result back in the temporary variable */
+        this->generate(PL0_LOD, 0, temp_print_address);
+        this->generate(PL0_LIT, 0, 0);
+        this->generate(PL0_OPR, 0, PL0_NEQ);
+        auto jmc_instruction_line = this->get_instruction_counter();
+        this->generate(PL0_JMC, 0, 0);
+        jmc_addresses.push_back(jmc_instruction_line);
+    }
+
+    for (auto &jmc_address: jmc_addresses) {
+        auto &jmc_instruction = this->get_instruction(jmc_address);
+        jmc_instruction.parameter = this->get_instruction_counter();
+    }
+
+    /* Buffer of digits is backwards now */
+    for (int i = max_int_digits - 1; i >= 0; i--) {
+        this->generate(PL0_LOD, 0, temp_addresses[i]);
+        this->generate(PL0_LIT, 0, 48);
+        this->generate(PL0_OPR, 0, PL0_ADD);
+        this->generate(PL0_WRI, 0, 0);
+    }
+
+    this->generate(PL0_RET, 0, 0);
+
+    this->symtab.remove_scope();
+}
+
+void InstructionsGenerator::gen_read_num() {
+    /* Initialize the scope and the activation record */
+    this->symtab.insert_scope(0, ACTIVATION_RECORD_SIZE, true);
+    this->generate(PL0_INT, 0, ACTIVATION_RECORD_SIZE + 2);
+
+    /* Two temporary variables are used to read the number and store the result */
+    this->symtab.insert_symbol("__TEMP_READ__", VARIABLE, INTEGER, false);
+    this->symtab.insert_symbol("__TEMP_RESULT__", VARIABLE, INTEGER, false);
+
+    /* Result is initialized to 0 */
+    auto temp_read_address = this->symtab.get_symbol("__TEMP_READ__").address;
+    auto temp_result_address = this->symtab.get_symbol("__TEMP_RESULT__").address;
+    this->generate(PL0_LIT, 0, 0);
+    this->generate(PL0_STO, 0, temp_result_address);
+
+    /* Read instruction address is the address to jump to (loop) */
+    auto rea_instruction_line = this->get_instruction_counter();
+    this->generate(PL0_REA, 0, 0);
+    this->generate(PL0_STO, 0, temp_read_address);
+
+    /* Check if the read number is equal to 10 (ASCII for newline) */
+    this->generate(PL0_LOD, 0, temp_read_address);
+    this->generate(PL0_LIT, 0, 10);
+    this->generate(PL0_OPR, 0, PL0_NEQ);
+
+    /* If it is not new line continue reading and adding to the result */
+    auto jmc_instruction_line = this->get_instruction_counter();
+    this->generate(PL0_JMC, 0, 0);
+
+    /* Load last read digit */
+    this->generate(PL0_LOD, 0, temp_read_address);
+    /* Subtract '0' to get the actual number */
+    this->generate(PL0_LIT, 0, 48);
+    this->generate(PL0_OPR, 0, PL0_SUB);
+    /* Multiply the result by 10 */
+    this->generate(PL0_LOD, 0, temp_result_address);
+    this->generate(PL0_LIT, 0, 10);
+    this->generate(PL0_OPR, 0, PL0_MUL);
+    /* Add the last read digit */
+    this->generate(PL0_OPR, 0, PL0_ADD);
+    /* Store the result */
+    this->generate(PL0_STO, 0, temp_result_address);
+    this->generate(PL0_JMP, 0, rea_instruction_line);
+
+    /* Jump here if the read number is equal to 10 (ASCII for newline) */
+    auto &jmc_instruction = this->get_instruction(jmc_instruction_line);
+    jmc_instruction.parameter = this->get_instruction_counter();
+
+    /* Load the result to be at the top of the stack */
+    this->generate(PL0_LOD, 0, temp_result_address);
+
+    /* Return the result */
+    this->generate(PL0_STO, 0, -1); /* sizeof int is 1 */
+    this->generate(PL0_RET, 0, 0);
+
+    /* Cleanup */
+    this->symtab.remove_scope();
+}
+
+void InstructionsGenerator::init_builtin_functions() {
+    this->symtab.init_builtin_functions();
+
+    if (this->used_builtin_functions.empty())
+        return;
+
+    if (std::find(this->used_builtin_functions.begin(), this->used_builtin_functions.end(), "print_num") != this->used_builtin_functions.end()) {
+        auto print_num_address = this->get_instruction_counter();
+        this->gen_print_num();
+        auto &print_num_symbol = this->symtab.get_symbol("print_num");
+        print_num_symbol.address = print_num_address;
+    }
+
+    if (std::find(this->used_builtin_functions.begin(), this->used_builtin_functions.end(), "read_num") != this->used_builtin_functions.end()) {
+        auto read_num_address = this->get_instruction_counter();
+        this->gen_read_num();
+        auto &read_num_symbol = this->symtab.get_symbol("read_num");
+        read_num_symbol.address = read_num_address;
+    }
+}
+
 void InstructionsGenerator::generate() {
     this->symtab.insert_scope(0, ACTIVATION_RECORD_SIZE); /* Offset 3 for activation record */
-    this->generate("INT", 0, 0);
+
+    /* Jump over builtin functions */
+    this->generate(PL0_JMP, 0, 0);
+    this->init_builtin_functions();
+    this->get_instruction(0).parameter = this->get_instruction_counter();
+
+    auto int_instruction_line = this->get_instruction_counter();
+    this->generate(PL0_INT, 0, 0);
 
     for (auto &statement: this->global_block->statements)
         statement->accept(this);
 
     auto sizeof_global_variables = symtab.get_sizeof_variables();
-    this->get_instruction(0).parameter = sizeof_global_variables + ACTIVATION_RECORD_SIZE;
+    this->get_instruction(int_instruction_line).parameter = sizeof_global_variables + ACTIVATION_RECORD_SIZE;
 
     auto main_address = symtab.get_symbol("main").address;
-    this->generate("INT", 0, 1);
-    this->generate("CAL", 0, main_address);
-    this->generate("RET", 0, 0);
+    this->generate(PL0_INT, 0, 1);
+    this->generate(PL0_CAL, 0, main_address);
+    this->generate(PL0_RET, 0, 0);
 }
 
 void InstructionsGenerator::visit(ASTNodeBlock *node) {

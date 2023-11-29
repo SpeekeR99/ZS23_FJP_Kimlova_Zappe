@@ -17,7 +17,7 @@ Jednoducha rozsireni (1b kazde):
   7 Nasobne prirazeni                                                       (NOT IMPLEMENTED)
   8 Podminene prirazeni (ternarni operator)                                 (NOT IMPLEMENTED)
   9 Paralelni prirazeni                                                     (NOT IMPLEMENTED)
- 10 Prikazy pro vstup a vystup                                              (NOT IMPLEMENTED)
+ 10 Prikazy pro vstup a vystup                                              (DONE)
 
 Slozitejsi rozsireni (2b kazde):
   1 Prikaz GOTO                                                             (NOT IMPLEMENTED)
@@ -55,3 +55,4 @@ Nase rozsireni (?b):
   6 Lepsi chybove hlasky semantickych chyb                                  (DONE)
   7 Break a Continue                                                        (DONE)
   8 Navratova hodnota z main je zachycena v globalnim bloku                 (DONE)
+  9 Vyreseni builtin funkci na zacatku instrukci                            (DONE)

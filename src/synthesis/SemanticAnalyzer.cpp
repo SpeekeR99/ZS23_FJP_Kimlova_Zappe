@@ -2,14 +2,21 @@
 
 SemanticAnalyzer::SemanticAnalyzer(ASTNodeBlock *global_block) : global_block(global_block), symtab(),
                                                                  declared_functions(), problematic_forward_referenced_functions(), assigned_constants(),
-                                                                 current_functions(), current_loop_level(0) {
+                                                                 current_functions(), current_loop_level(0), used_builtin_functions() {
     /* Empty */
 }
 
 SemanticAnalyzer::~SemanticAnalyzer() = default;
 
+std::vector<std::string> SemanticAnalyzer::get_used_builtin_functions() {
+    return this->used_builtin_functions;
+}
+
 void SemanticAnalyzer::analyze() {
     this->symtab.insert_scope(0, 0); /* No need to care about addressing here */
+    this->symtab.init_builtin_functions();
+    for (auto &builtin_function: this->symtab.get_current_scope().get_table())
+        this->declared_functions[builtin_function.first] = true;
 
     for (auto &statement: this->global_block->statements)
         statement->accept(this);
@@ -227,6 +234,9 @@ void SemanticAnalyzer::visit(ASTNodeCallFunc *node) {
 
     if (!this->declared_functions[node->name])
         problematic_forward_referenced_functions[node->name] = node->line;
+
+    if (std::find(SymbolTable::builtin_functions.begin(), SymbolTable::builtin_functions.end(), node->name) != SymbolTable::builtin_functions.end())
+        this->used_builtin_functions.push_back(node->name);
 }
 
 void SemanticAnalyzer::visit(ASTNodeNew *node) {

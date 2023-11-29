@@ -12,12 +12,16 @@ private:
     std::map<std::string, bool> assigned_constants;
     std::vector<std::pair<std::string, int>> current_functions;
     int current_loop_level;
+    std::vector<std::string> used_builtin_functions;
 
 public:
+
     explicit SemanticAnalyzer(ASTNodeBlock* global_block);
     ~SemanticAnalyzer() override;
 
     void analyze();
+
+    std::vector<std::string> get_used_builtin_functions();
 
     void visit(ASTNodeBlock *node) override;
     void visit(ASTNodeDeclVar *node) override;

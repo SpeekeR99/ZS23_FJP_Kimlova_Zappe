@@ -15,8 +15,9 @@ int main(int argc, char **argv) {
 
     auto semantic_analyzer = SemanticAnalyzer(program_global_block);
     semantic_analyzer.analyze();
+    auto used_builtin_functions = semantic_analyzer.get_used_builtin_functions();
 
-    auto instructions_generator = InstructionsGenerator(program_global_block);
+    auto instructions_generator = InstructionsGenerator(program_global_block, used_builtin_functions);
     instructions_generator.generate();
 
     for (auto &instruction: instructions_generator.get_instructions())

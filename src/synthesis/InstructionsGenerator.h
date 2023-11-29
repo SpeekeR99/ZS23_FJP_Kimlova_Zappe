@@ -88,6 +88,7 @@ typedef struct Instruction {
 class InstructionsGenerator : public ASTVisitor {
 private:
     ASTNodeBlock* global_block;
+    std::vector<std::string> used_builtin_functions;
     std::vector<Instruction> instructions;
     std::uint32_t instruction_counter;
     SymbolTable symtab;
@@ -100,13 +101,17 @@ private:
     void generate(const std::string &instruction, int level, int parameter);
     void generate(InstructionIndex instruction, int level, int parameter);
 
+    void init_builtin_functions();
+    void gen_print_num();
+    void gen_read_num();
+
     [[nodiscard]] Instruction &get_instruction(std::uint32_t index);
 
     [[nodiscard]] std::uint32_t get_instruction_counter() const;
     void set_instruction_counter(std::uint32_t counter);
 
 public:
-    explicit InstructionsGenerator(ASTNodeBlock* global_block);
+    InstructionsGenerator(ASTNodeBlock* global_block, std::vector<std::string> &used_builtin_functions);
     ~InstructionsGenerator() override;
 
     void generate();

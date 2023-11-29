@@ -55,6 +55,7 @@ public:
     void insert(const std::string &name, SymbolType symbol_type, ValueType type, bool is_const, uint32_t address = 0);
     void insert(const std::string &name, SymbolType symbol_type, const std::string &type, bool is_const, uint32_t address = 0);
     bool exists(const std::string &name);
+    void remove(const std::string &name);
     SymbolTableRecord &get(const std::string &name);
 
     [[nodiscard]] std::map<std::string, SymbolTableRecord> &get_table() const;
@@ -71,14 +72,19 @@ private:
     std::vector<ScopeSymbolTable> table;
 
 public:
+    static std::vector<std::string> builtin_functions;
+
     SymbolTable();
     ~SymbolTable();
+
+    void init_builtin_functions();
 
     void insert_scope(uint32_t address_base, uint32_t address_offset, bool is_function_scope = false);
     void remove_scope();
     void insert_symbol(const std::string &name, SymbolType symbol_type, ValueType type, bool is_const, uint32_t address = 0);
     void insert_symbol(const std::string &name, SymbolType symbol_type, const std::string &type, bool is_const, uint32_t address = 0);
     void change_symbol_name(const std::string &old_name, const std::string &new_name);
+    void remove_symbol(const std::string &name);
 
     [[nodiscard]] SymbolTableRecord &get_symbol(const std::string &name);
     [[nodiscard]] uint32_t get_symbol_level(const std::string &name);
