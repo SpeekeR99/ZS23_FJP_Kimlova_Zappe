@@ -60,3 +60,34 @@ bool ASTNodeIf::contains_return_statement() {
         return this->block->contains_return_statement() && this->else_block->contains_return_statement();
     return false; /* If last statement was if, it should contain else to cover all cases */
 }
+
+bool ASTNodeBinaryOperator::contains_reference() {
+    if (dynamic_cast<ASTNodeReference *>(this->left) || dynamic_cast<ASTNodeReference *>(this->right))
+        return true;
+    else if (auto *left_binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(this->left))
+        return left_binary_operator->contains_reference();
+    else if (auto *right_binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(this->right))
+        return right_binary_operator->contains_reference();
+    return false;
+}
+
+std::string ASTNodeBinaryOperator::find_dereference() {
+    if (auto *left_binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(this->left))
+        return left_binary_operator->find_dereference();
+    else if (auto *right_binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(this->right))
+        return right_binary_operator->find_dereference();
+    else if (auto *left_reference = dynamic_cast<ASTNodeReference *>(this->left))
+        return left_reference->identifier;
+    else if (auto *right_reference = dynamic_cast<ASTNodeReference *>(this->right))
+        return right_reference->identifier;
+    return "";
+}
+
+void ASTNodeDereference::what_do_i_dereference() {
+    if (auto *id = dynamic_cast<ASTNodeIdentifier *>(this->expression)) {
+        this->identifier = id->name;
+    } else if (auto *binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(this->expression)) {
+        if (binary_operator->find_dereference() != "")
+            this->identifier = binary_operator->find_dereference();
+    }
+}

@@ -43,5 +43,6 @@ public:
     void visit(ASTNodeNew *node) override;
     void visit(ASTNodeDelete *node) override;
     void visit(ASTNodeDereference *node) override;
+    void visit(ASTNodeReference *node) override;
     void visit(ASTNodeDynamicAssignExpression *node) override;
 };

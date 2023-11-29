@@ -79,9 +79,35 @@ void SemanticAnalyzer::visit(ASTNodeDeclVar *node) {
     }
 
     this->symtab.insert_symbol(node->name, VARIABLE, node->type, node->is_const);
+    auto &symbol = this->symtab.get_symbol(node->name);
+    symbol.is_pointer = node->is_pointer;
     if (node->expression) {
         this->assigned_constants[node->name] = true;
         node->expression->accept(this);
+
+        if ( dynamic_cast<ASTNodeReference *>(node->expression)) {
+            if (!node->is_pointer) {
+                std::cerr << "Semantic error: variable \"" << node->name << "\" is not a pointer, error on line " << node->line << std::endl;
+                exit(1);
+            }
+            symbol.is_pointing_to_stack = true;
+        }
+        else if (dynamic_cast<ASTNodeNew *>(node->expression)) {
+            if (!node->is_pointer) {
+                std::cerr << "Semantic error: variable \"" << node->name << "\" is not a pointer, error on line " << node->line << std::endl;
+                exit(1);
+            }
+            symbol.is_pointing_to_stack = false;
+        }
+        else if (auto binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(node->expression)) {
+            if (binary_operator->contains_reference()) {
+                if (!node->is_pointer) {
+                    std::cerr << "Semantic error: variable \"" << node->name << "\" is not a pointer, error on line " << node->line << std::endl;
+                    exit(1);
+                }
+                symbol.is_pointing_to_stack = true;
+            }
+        }
     }
     else
         this->assigned_constants[node->name] = false;
@@ -197,6 +223,30 @@ void SemanticAnalyzer::visit(ASTNodeAssignExpression *node) {
 
     node->expression->accept(this);
 
+    if (dynamic_cast<ASTNodeReference *>(node->expression)) {
+        if (!symbol.is_pointer) {
+            std::cerr << "Semantic error: variable \"" << node->name << "\" is not a pointer, error on line " << node->line << std::endl;
+            exit(1);
+        }
+        symbol.is_pointing_to_stack = true;
+    }
+    else if (dynamic_cast<ASTNodeNew *>(node->expression)) {
+        if (!symbol.is_pointer) {
+            std::cerr << "Semantic error: variable \"" << node->name << "\" is not a pointer, error on line " << node->line << std::endl;
+            exit(1);
+        }
+        symbol.is_pointing_to_stack = false;
+    }
+    else if (auto binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(node->expression)) {
+        if (binary_operator->contains_reference()) {
+            if (!symbol.is_pointer) {
+                std::cerr << "Semantic error: variable \"" << node->name << "\" is not a pointer, error on line " << node->line << std::endl;
+                exit(1);
+            }
+            symbol.is_pointing_to_stack = true;
+        }
+    }
+
     if (symbol.is_const)
         this->assigned_constants[node->name] = true;
 }
@@ -254,6 +304,14 @@ void SemanticAnalyzer::visit(ASTNodeDelete *node) {
 
 void SemanticAnalyzer::visit(ASTNodeDereference *node) {
     node->expression->accept(this);
+}
+
+void SemanticAnalyzer::visit(ASTNodeReference *node) {
+    auto &symbol = this->symtab.get_symbol(node->identifier);
+    if (symbol == undefined_record) {
+        std::cerr << "Semantic error: variable \"" << node->identifier << "\" not declared, error on line " << node->line << std::endl;
+        exit(1);
+    }
 }
 
 void SemanticAnalyzer::visit(ASTNodeDynamicAssignExpression *node) {

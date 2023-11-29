@@ -25,6 +25,7 @@ class ASTNodeCallFunc;
 class ASTNodeNew;
 class ASTNodeDelete;
 class ASTNodeDereference;
+class ASTNodeReference;
 class ASTNodeDynamicAssignExpression;
 
 class ASTVisitor {
@@ -51,6 +52,7 @@ public:
     virtual void visit(ASTNodeNew *node) = 0;
     virtual void visit(ASTNodeDelete *node) = 0;
     virtual void visit(ASTNodeDereference *node) = 0;
+    virtual void visit(ASTNodeReference *node) = 0;
     virtual void visit(ASTNodeDynamicAssignExpression *node) = 0;
 };
 
@@ -117,8 +119,9 @@ public:
     std::string name;
     bool is_const;
     ASTNodeExpression *expression;
+    int is_pointer;
 
-    ASTNodeDeclVar(const std::string &type, const std::string &name, bool is_const, ASTNodeExpression *expression, int line) : name(name), type(type), is_const(is_const), expression(expression), line(line) {
+    ASTNodeDeclVar(const std::string &type, int is_pointer, const std::string &name, bool is_const, ASTNodeExpression *expression, int line) : name(name), is_pointer(is_pointer), type(type), is_const(is_const), expression(expression), line(line) {
         sizeof_type = sizeof_val_type(str_to_val_type(type));
     }
 
@@ -129,6 +132,8 @@ public:
     void debug_print() override {
         if (is_const)
             std::cout << "const ";
+        for (int i = 0; i < is_pointer; i++)
+            std::cout << "*";
         std::cout << "var " << name << " : " << type << " = ";
         if (expression)
             expression->debug_print();
@@ -429,6 +434,9 @@ public:
         delete right;
     }
 
+    bool contains_reference();
+    std::string find_dereference();
+
     void debug_print() override {
         std::cout << "(";
         left->debug_print();
@@ -565,20 +573,43 @@ public:
 class ASTNodeDereference : public ASTNodeExpression {
 public:
     int line;
+    std::string identifier;
     ASTNodeExpression *expression;
     bool is_lvalue = false;
+    bool is_pointing_to_stack = false;
 
-    explicit ASTNodeDereference(ASTNodeExpression *expression, int line) : expression(expression), line(line) {
-        /* Empty */
+    ASTNodeDereference(ASTNodeExpression *expression, int line) : expression(expression), line(line) {
+        this->what_do_i_dereference();
     }
 
     ~ASTNodeDereference() override {
         delete expression;
     }
 
+    void what_do_i_dereference();
+
     void debug_print() override {
         std::cout << "*";
         expression->debug_print();
+    }
+    void accept(ASTVisitor *visitor) override {
+        visitor->visit(this);
+    }
+};
+
+class ASTNodeReference : public ASTNodeExpression {
+public:
+    int line;
+    std::string identifier;
+
+    explicit ASTNodeReference(const std::string &identifier, int line) : identifier(identifier), line(line) {
+        /* Empty */
+    }
+
+    ~ASTNodeReference() override = default;
+
+    void debug_print() override {
+        std::cout << "&" << identifier;
     }
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);

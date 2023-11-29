@@ -242,9 +242,20 @@ void InstructionsGenerator::visit(ASTNodeDeclVar *node) {
     auto &symbol = this->symtab.get_symbol(node->name);
     symbol.type = str_to_val_type(node->type);
     symbol.is_const = node->is_const;
+    symbol.is_pointer = node->is_pointer;
 
     if (node->expression) {
         node->expression->accept(this);
+
+        if (auto ref = dynamic_cast<ASTNodeReference *>(node->expression))
+            symbol.is_pointing_to_stack = true;
+        else if (dynamic_cast<ASTNodeNew *>(node->expression))
+            symbol.is_pointing_to_stack = false;
+        else if (auto binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(node->expression)) {
+            if (binary_operator->contains_reference())
+                symbol.is_pointing_to_stack = true;
+        }
+
         auto address = this->symtab.get_symbol(node->name).address;
         this->generate(PL0_STO, 0, address);
     }
@@ -419,8 +430,20 @@ void InstructionsGenerator::visit(ASTNodeBoolLiteral *node) {
 }
 
 void InstructionsGenerator::visit(ASTNodeAssignExpression *node) {
+    auto &symbol = this->symtab.get_symbol(node->name);
+
     node->expression->accept(this);
-    auto address = this->symtab.get_symbol(node->name).address;
+
+    if (dynamic_cast<ASTNodeReference *>(node->expression))
+        symbol.is_pointing_to_stack = true;
+    else if (dynamic_cast<ASTNodeNew *>(node->expression))
+        symbol.is_pointing_to_stack = false;
+    else if (auto binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(node->expression)) {
+        if (binary_operator->contains_reference())
+            symbol.is_pointing_to_stack = true;
+    }
+
+    auto address = symbol.address;
     auto level = this->symtab.get_symbol_level(node->name);
     this->generate(PL0_STO, level, address);
 }
@@ -482,12 +505,30 @@ void InstructionsGenerator::visit(ASTNodeDelete *node) {
 
 void InstructionsGenerator::visit(ASTNodeDereference *node) {
     node->expression->accept(this);
-    if (!node->is_lvalue)
+    if (!node->is_lvalue && !node->is_pointing_to_stack)
         this->generate(PL0_LDA, 0, 0);
+    else if (!node->is_lvalue && node->is_pointing_to_stack)
+        this->generate(PL0_LOD, 0, 0);
+}
+
+void InstructionsGenerator::visit(ASTNodeReference *node) {
+    auto address = this->symtab.get_symbol(node->identifier).address;
+    this->generate(PL0_LIT, 0, address);
 }
 
 void InstructionsGenerator::visit(ASTNodeDynamicAssignExpression *node) {
-    node->left->accept(this);
-    node->right->accept(this);
-    this->generate(PL0_STA, 0, 0);
+    if (auto dereference = dynamic_cast<ASTNodeDereference *>(node->left)) {
+        auto &symbol = this->symtab.get_symbol(dereference->identifier);
+        if (symbol.is_pointing_to_stack) {
+            node->right->accept(this);
+            auto level = this->symtab.get_symbol_level(dereference->identifier);
+            this->generate(PL0_LIT, 0, level);
+            node->left->accept(this);
+            this->generate(PL0_PST, 0, 0);
+        } else {
+            node->left->accept(this);
+            node->right->accept(this);
+            this->generate(PL0_STA, 0, 0);
+        }
+    }
 }

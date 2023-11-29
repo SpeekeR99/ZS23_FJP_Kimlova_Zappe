@@ -40,9 +40,10 @@
 
 %right ASSIGN_OP
 
+%nonassoc DEREF REF
 %left ADD SUB
 %left MUL DIV MOD
-%left U_MINUS DEREF
+%left U_MINUS
 
 %type <string> ID TYPE INT_LITERAL BOOL_LITERAL ADD SUB MUL DIV MOD AND OR NOT EQ NEQ LESS LESSEQ GRT GRTEQ ASSIGN_OP
 %type <expr> expr arithm_expr logic_expr compare_expr cast_expr call_func_expr assign_expr memory_expr
@@ -50,6 +51,7 @@
 %type <block> program stmts block else_stmt
 %type <params> params params_list
 %type <args> args args_list
+%type <token> ptr_modifier
 
 %start program
 
@@ -70,24 +72,53 @@ program:
 
 decl_var_stmt:
     TYPE ID SEMICOLON {
-        $$ = new ASTNodeDeclVar(*$1, *$2, false, nullptr, yylineno);
+        $$ = new ASTNodeDeclVar(*$1, 0, *$2, false, nullptr, yylineno);
         delete $1;
         delete $2;
+    }
+    | TYPE ptr_modifier ID SEMICOLON {
+        $$ = new ASTNodeDeclVar(*$1, $2, *$3, false, nullptr, yylineno);
+        delete $1;
+        delete $3;
     }
     | CONSTANT TYPE ID SEMICOLON {
-        $$ = new ASTNodeDeclVar(*$2, *$3, true, nullptr, yylineno);
+        $$ = new ASTNodeDeclVar(*$2, 0, *$3, true, nullptr, yylineno);
         delete $2;
         delete $3;
     }
+    | CONSTANT TYPE ptr_modifier ID SEMICOLON {
+        $$ = new ASTNodeDeclVar(*$2, $3, *$4, true, nullptr, yylineno);
+        delete $2;
+        delete $4;
+    }
     | TYPE ID ASSIGN_OP expr SEMICOLON {
-        $$ = new ASTNodeDeclVar(*$1, *$2, false, $4, yylineno);
+        $$ = new ASTNodeDeclVar(*$1, 0, *$2, false, $4, yylineno);
         delete $1;
         delete $2;
     }
+    | TYPE ptr_modifier ID ASSIGN_OP expr SEMICOLON {
+        $$ = new ASTNodeDeclVar(*$1, $2, *$3, false, $5, yylineno);
+        delete $1;
+        delete $3;
+    }
     | CONSTANT TYPE ID ASSIGN_OP expr SEMICOLON {
-        $$ = new ASTNodeDeclVar(*$2, *$3, true, $5, yylineno);
+        $$ = new ASTNodeDeclVar(*$2, 0, *$3, true, $5, yylineno);
         delete $2;
         delete $3;
+    }
+    | CONSTANT TYPE ptr_modifier ID ASSIGN_OP expr SEMICOLON {
+        $$ = new ASTNodeDeclVar(*$2, $3, *$4, true, $6, yylineno);
+        delete $2;
+        delete $4;
+    }
+;
+
+ptr_modifier:
+    ptr_modifier DEREF {
+        $$ = $1 + 1;
+    }
+    | DEREF {
+        $$ = 1;
     }
 ;
 
@@ -117,16 +148,28 @@ params:
 
 params_list:
     params_list COMMA TYPE ID {
-        $1->emplace_back(new ASTNodeDeclVar(*$3, *$4, false, nullptr, yylineno));
+        $1->emplace_back(new ASTNodeDeclVar(*$3, 0, *$4, false, nullptr, yylineno));
         $$ = $1;
         delete $3;
         delete $4;
     }
+    | params_list COMMA TYPE ptr_modifier ID {
+        $1->emplace_back(new ASTNodeDeclVar(*$3, $4, *$5, false, nullptr, yylineno));
+        $$ = $1;
+        delete $3;
+        delete $5;
+    }
     | TYPE ID {
         $$ = new std::vector<ASTNodeDeclVar *>();
-        $$->emplace_back(new ASTNodeDeclVar(*$1, *$2, false, nullptr, yylineno));
+        $$->emplace_back(new ASTNodeDeclVar(*$1, 0, *$2, false, nullptr, yylineno));
         delete $1;
         delete $2;
+    }
+    | TYPE ptr_modifier ID {
+        $$ = new std::vector<ASTNodeDeclVar *>();
+        $$->emplace_back(new ASTNodeDeclVar(*$1, $2, *$3, false, nullptr, yylineno));
+        delete $1;
+        delete $3;
     }
 ;
 
@@ -404,6 +447,10 @@ memory_expr:
     }
     | DEREF expr {
         $$ = new ASTNodeDereference($2, yylineno);
+    }
+    | REF ID {
+        $$ = new ASTNodeReference(*$2, yylineno);
+        delete $2;
     }
 ;
 

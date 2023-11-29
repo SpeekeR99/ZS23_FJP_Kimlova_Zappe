@@ -64,7 +64,8 @@ delete                  { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(DEL
 \<=                     { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(LESSEQ); } }
 \>                      { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(GRT); } }
 \>=                     { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(GRTEQ); } }
-\@                      { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(DEREF); } }
+\@                      { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(REF); } }
+\^                      { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(DEREF); } }
 [ \t]+                  { HANDLE_COLUMN; }
 \r\n                    { HANDLE_COLUMN; next_column = 1; }
 \n                      { HANDLE_COLUMN; next_column = 1; }
