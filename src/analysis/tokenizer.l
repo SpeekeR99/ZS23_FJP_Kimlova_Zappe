@@ -45,6 +45,8 @@ else                    { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(ELS
 while                   { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(WHILE); } }
 do                      { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(DO); } }
 for                     { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(FOR); } }
+repeat                  { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(REPEAT); } }
+until                   { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(UNTIL); } }
 break                   { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(BREAK); } }
 continue                { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(CONTINUE); } }
 return                  { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(RETURN); } }

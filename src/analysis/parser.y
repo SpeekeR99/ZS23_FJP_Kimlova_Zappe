@@ -32,7 +32,7 @@
 
 %nonassoc TYPE ID INT_LITERAL BOOL_LITERAL CONSTANT BEGIN_BLOCK END_BLOCK
 
-%nonassoc IF ELSE FOR WHILE DO BREAK CONTINUE RETURN NEW DELETE
+%nonassoc IF ELSE FOR WHILE DO REPEAT UNTIL BREAK CONTINUE RETURN NEW DELETE
 %left AND OR NOT
 %left EQ NEQ LESS LESSEQ GRT GRTEQ
 
@@ -47,7 +47,7 @@
 
 %type <string> ID TYPE INT_LITERAL BOOL_LITERAL ADD SUB MUL DIV MOD AND OR NOT EQ NEQ LESS LESSEQ GRT GRTEQ ASSIGN_OP
 %type <expr> expr arithm_expr logic_expr compare_expr cast_expr call_func_expr assign_expr memory_expr
-%type <stmt> stmt decl_var_stmt decl_func_stmt if_stmt loop_stmt while_stmt do_while_stmt for_stmt jump_stmt break_stmt continue_stmt return_stmt
+%type <stmt> stmt decl_var_stmt decl_func_stmt if_stmt loop_stmt while_stmt do_while_stmt repeat_until_stmt for_stmt jump_stmt break_stmt continue_stmt return_stmt
 %type <block> program stmts block else_stmt
 %type <params> params params_list
 %type <args> args args_list
@@ -234,6 +234,9 @@ loop_stmt:
     | do_while_stmt {
         $$ = $1;
     }
+    | repeat_until_stmt {
+        $$ = $1;
+    }
     | for_stmt {
         $$ = $1;
     }
@@ -241,13 +244,19 @@ loop_stmt:
 
 while_stmt:
     WHILE L_BRACKET expr R_BRACKET block {
-        $$ = new ASTNodeWhile($3, $5, false, yylineno);
+        $$ = new ASTNodeWhile($3, $5, false, false, yylineno);
     }
 ;
 
 do_while_stmt:
     DO block WHILE L_BRACKET expr R_BRACKET SEMICOLON {
-        $$ = new ASTNodeWhile($5, $2, true, yylineno);
+        $$ = new ASTNodeWhile($5, $2, true, false, yylineno);
+    }
+;
+
+repeat_until_stmt:
+    REPEAT block UNTIL L_BRACKET expr R_BRACKET SEMICOLON {
+        $$ = new ASTNodeWhile($5, $2, true, true, yylineno);
     }
 ;
 

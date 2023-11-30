@@ -234,10 +234,11 @@ public:
     ASTNodeExpression *condition;
     ASTNodeBlock *block;
     bool is_do_while = false;
+    bool is_repeat_until = false;
     int break_number = 0;
     int continue_number = 0;
 
-    ASTNodeWhile(ASTNodeExpression *condition, ASTNodeBlock *block, bool is_do_while, int line) : condition(condition), block(block), is_do_while(is_do_while), line(line) {
+    ASTNodeWhile(ASTNodeExpression *condition, ASTNodeBlock *block, bool is_do_while, bool is_repeat_until, int line) : condition(condition), block(block), is_do_while(is_do_while), is_repeat_until(is_repeat_until), line(line) {
         /* Empty */
     }
 

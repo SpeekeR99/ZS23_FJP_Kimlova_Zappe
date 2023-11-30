@@ -83,7 +83,7 @@ void SemanticAnalyzer::visit(ASTNodeDeclVar *node) {
         this->assigned_constants[node->name] = true;
         node->expression->accept(this);
 
-        if ( dynamic_cast<ASTNodeReference *>(node->expression)) {
+        if (dynamic_cast<ASTNodeReference *>(node->expression)) {
             if (!node->is_pointer) {
                 std::cerr << "Semantic error: variable \"" << node->name << "\" is not a pointer, error on line " << node->line << std::endl;
                 exit(1);
@@ -104,6 +104,19 @@ void SemanticAnalyzer::visit(ASTNodeDeclVar *node) {
                     exit(1);
                 }
                 symbol.is_pointing_to_stack = true;
+            }
+        }
+
+        if (node->is_pointer) {
+            if (!dynamic_cast<ASTNodeReference *>(node->expression) && !dynamic_cast<ASTNodeNew *>(node->expression)) {
+                std::cerr << "Semantic error: variable \"" << node->name << "\" is a pointer and must be initialized with a reference or new, error on line " << node->line << std::endl;
+                exit(1);
+            }
+            else if (auto binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(node->expression)) {
+                if (!binary_operator->contains_reference()) {
+                    std::cerr << "Semantic error: variable \"" << node->name << "\" is a pointer and must be initialized with a reference or new, error on line " << node->line << std::endl;
+                    exit(1);
+                }
             }
         }
     }
@@ -163,13 +176,8 @@ void SemanticAnalyzer::visit(ASTNodeWhile *node) {
     this->current_loop_level++;
     this->symtab.insert_scope(0, 0, false); /* No need to care about addressing here */
 
-    if (node->is_do_while) {
-        node->block->accept(this);
-        node->condition->accept(this);
-    } else {
-        node->condition->accept(this);
-        node->block->accept(this);
-    }
+    node->condition->accept(this);
+    node->block->accept(this);
 
     this->symtab.remove_scope();
     this->current_loop_level--;
@@ -260,6 +268,19 @@ void SemanticAnalyzer::visit(ASTNodeAssignExpression *node) {
                 exit(1);
             }
             symbol.is_pointing_to_stack = true;
+        }
+    }
+
+    if (symbol.is_pointer) {
+        if (!dynamic_cast<ASTNodeReference *>(node->expression) && !dynamic_cast<ASTNodeNew *>(node->expression)) {
+            std::cerr << "Semantic error: variable \"" << node->name << "\" is a pointer and must be assigned with a reference or new, error on line " << node->line << std::endl;
+            exit(1);
+        }
+        else if (auto binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(node->expression)) {
+            if (!binary_operator->contains_reference()) {
+                std::cerr << "Semantic error: variable \"" << node->name << "\" is a pointer and must be assigned with a reference or new, error on line " << node->line << std::endl;
+                exit(1);
+            }
         }
     }
 

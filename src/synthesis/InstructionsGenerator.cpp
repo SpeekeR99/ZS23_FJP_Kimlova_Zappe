@@ -360,6 +360,11 @@ void InstructionsGenerator::visit(ASTNodeWhile *node) {
         auto condition_instruction_line = this->get_instruction_counter();
         node->condition->accept(this);
 
+        if (node->is_repeat_until) {
+            this->generate(PL0_LIT, 0, 0);
+            this->generate(PL0_OPR, 0, PL0_EQ);
+        }
+
         auto jmc_instruction_line = this->get_instruction_counter();
         this->generate(PL0_JMC, 0, 0);
         this->generate(PL0_JMP, 0, block_instruction_line);
