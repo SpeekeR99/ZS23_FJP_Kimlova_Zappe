@@ -1,9 +1,9 @@
 #include "InstructionsGenerator.h"
 
 InstructionsGenerator::InstructionsGenerator(ASTNodeBlock *global_block, std::vector<std::string> &used_builtin_functions) : global_block(global_block), used_builtin_functions(used_builtin_functions), instructions(),
-                                                                           instruction_counter(0), symtab(), number_of_declared_variables(),
-                                                                           declared_functions(), break_stack(),
-                                                                           continue_stack(), sizeof_params_stack() {
+                                                                                                                             instruction_counter(0), symtab(), number_of_declared_variables(),
+                                                                                                                             declared_functions(), break_stack(),
+                                                                                                                             continue_stack(), sizeof_params_stack() {
     /* Empty */
 }
 
@@ -36,56 +36,69 @@ void InstructionsGenerator::set_instruction_counter(std::uint32_t counter) {
 void InstructionsGenerator::gen_print_num() {
     this->symtab.insert_scope(0, ACTIVATION_RECORD_SIZE, true);
 
-    this->generate(PL0_INT, 0, ACTIVATION_RECORD_SIZE + 1);
+    this->generate(PL0_INT, 0, ACTIVATION_RECORD_SIZE + 2);
     this->symtab.insert_symbol("__TEMP_PRINT__", VARIABLE, INTEGER, false);
     this->generate(PL0_LOD, 0, -1); /* Load first and only argument */
     auto temp_print_address = this->symtab.get_symbol("__TEMP_PRINT__").address;
     this->generate(PL0_STO, 0, temp_print_address); /* Store the argument in the first temporary variable */
 
-    std::vector<int> jmc_addresses;
-    std::vector<int> temp_addresses;
-    const int max_int_digits = 10;
-    for (int i = 0; i < max_int_digits; i++) {
-        this->symtab.insert_symbol("__TEMP_" + std::to_string(i) + "__", VARIABLE, INTEGER, false);
-        auto temp_address = this->symtab.get_symbol("__TEMP_" + std::to_string(i) + "__").address;
-        temp_addresses.push_back(temp_address);
-    }
+    this->symtab.insert_symbol("__TEMP_COUNTER__", VARIABLE, INTEGER, false);
+    auto temp_counter_address = this->symtab.get_symbol("__TEMP_COUNTER__").address;
+    this->generate(PL0_LIT, 0, 0);
+    this->generate(PL0_STO, 0, temp_counter_address);
 
-    this->generate(PL0_INT, 0, max_int_digits);
-    for (auto &temp_address: temp_addresses) {
-        this->generate(PL0_LIT, 0, 0);
-        this->generate(PL0_STO, 0, temp_address);
-    }
+    auto jump_to_start = this->get_instruction_counter();
+    this->generate(PL0_INT, 0, 1);
+    this->generate(PL0_LOD, 0, temp_print_address); /* Load the number */
 
-    for (int i = 0; i < max_int_digits; i++) {
-        this->generate(PL0_LOD, 0, temp_print_address); /* Load the number */
-        this->generate(PL0_LIT, 0, 10);
-        this->generate(PL0_OPR, 0, PL0_MOD); /* Divide the number by 10 */
-        this->generate(PL0_STO, 0, temp_addresses[i]); /* Store the result back in the temporary variable */
-        this->generate(PL0_LOD, 0, temp_print_address); /* Load the number */
-        this->generate(PL0_LIT, 0, 10);
-        this->generate(PL0_OPR, 0, PL0_DIV); /* Divide the number by 10 */
-        this->generate(PL0_STO, 0, temp_print_address); /* Store the result back in the temporary variable */
-        this->generate(PL0_LOD, 0, temp_print_address);
-        this->generate(PL0_LIT, 0, 0);
-        this->generate(PL0_OPR, 0, PL0_NEQ);
-        auto jmc_instruction_line = this->get_instruction_counter();
-        this->generate(PL0_JMC, 0, 0);
-        jmc_addresses.push_back(jmc_instruction_line);
-    }
+    this->generate(PL0_LIT, 0, 10);
+    this->generate(PL0_OPR, 0, PL0_MOD); /* Divide the number by 10 */
 
-    for (auto &jmc_address: jmc_addresses) {
-        auto &jmc_instruction = this->get_instruction(jmc_address);
-        jmc_instruction.parameter = this->get_instruction_counter();
-    }
+    this->generate(PL0_LIT, 0, 0);
+    this->generate(PL0_LIT, 0, 5);
+    this->generate(PL0_LOD, 0, temp_counter_address);
+    this->generate(PL0_OPR, 0, PL0_ADD);
+    this->generate(PL0_PST, 0, 0); /* Store the result back in the temporary variable */
+
+    this->generate(PL0_LOD, 0, temp_print_address); /* Load the number */
+    this->generate(PL0_LIT, 0, 10);
+    this->generate(PL0_OPR, 0, PL0_DIV); /* Divide the number by 10 */
+    this->generate(PL0_STO, 0, temp_print_address); /* Store the result back in the temporary variable */
+
+    this->generate(PL0_LOD, 0, temp_counter_address);
+    this->generate(PL0_LIT, 0, 1);
+    this->generate(PL0_OPR, 0, PL0_ADD);
+    this->generate(PL0_STO, 0, temp_counter_address); /* Increment the counter */
+
+    this->generate(PL0_LOD, 0, temp_print_address);
+    this->generate(PL0_LIT, 0, 0);
+    this->generate(PL0_OPR, 0, PL0_EQ);
+
+    this->generate(PL0_JMC, 0, jump_to_start);
 
     /* Buffer of digits is backwards now */
-    for (int i = max_int_digits - 1; i >= 0; i--) {
-        this->generate(PL0_LOD, 0, temp_addresses[i]);
-        this->generate(PL0_LIT, 0, 48);
-        this->generate(PL0_OPR, 0, PL0_ADD);
-        this->generate(PL0_WRI, 0, 0);
-    }
+    auto jump_to_print_start = this->get_instruction_counter();
+    this->generate(PL0_LIT, 0, 0);
+    this->generate(PL0_LIT, 0, 4);
+    this->generate(PL0_LOD, 0, temp_counter_address);
+    this->generate(PL0_OPR, 0, PL0_ADD);
+    this->generate(PL0_PLD, 0, 0); /* Load the digit */
+
+    this->generate(PL0_LIT, 0, 48);
+    this->generate(PL0_OPR, 0, PL0_ADD);
+
+    this->generate(PL0_WRI, 0, 0); /* Write the digit */
+
+    this->generate(PL0_LOD, 0, temp_counter_address);
+    this->generate(PL0_LIT, 0, 1);
+    this->generate(PL0_OPR, 0, PL0_SUB);
+    this->generate(PL0_STO, 0, temp_counter_address); /* Decrement the counter */
+
+    this->generate(PL0_LOD, 0, temp_counter_address);
+    this->generate(PL0_LIT, 0, 0);
+    this->generate(PL0_OPR, 0, PL0_EQ);
+
+    this->generate(PL0_JMC, 0, jump_to_print_start);
 
     this->generate(PL0_RET, 0, 0);
 
