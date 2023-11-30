@@ -33,6 +33,7 @@ public:
     void visit(ASTNodeFor *node) override;
     void visit(ASTNodeBreakContinue *node) override;
     void visit(ASTNodeReturn *node) override;
+    void visit(ASTNodeGoto *node) override;
     void visit(ASTNodeExpressionStatement *node) override;
     void visit(ASTNodeIdentifier *node) override;
     void visit(ASTNodeIntLiteral *node) override;
@@ -46,6 +47,4 @@ public:
     void visit(ASTNodeDelete *node) override;
     void visit(ASTNodeDereference *node) override;
     void visit(ASTNodeReference *node) override;
-    void visit(ASTNodeDynamicAssignExpression *node) override;
-    void visit(ASTNodeGoto *node) override;
 };

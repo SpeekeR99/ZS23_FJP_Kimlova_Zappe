@@ -510,6 +510,17 @@ void InstructionsGenerator::visit(ASTNodeReturn *node) {
     this->generate(PL0_RET, 0, 0);
 }
 
+void InstructionsGenerator::visit(ASTNodeGoto *node) {
+    if (!node->label.empty()) {
+        auto jump_instruction_line = this->get_instruction_counter();
+        this->labels_to_line[node->label] = jump_instruction_line;
+    }
+
+    auto jump_instruction_line = this->get_instruction_counter();
+    this->generate(PL0_JMP, 0, 0);
+    this->goto_labels_line[node->label_to_go_to] = jump_instruction_line;
+}
+
 void InstructionsGenerator::visit(ASTNodeExpressionStatement *node) {
     if (!node->label.empty()) {
         auto jump_instruction_line = this->get_instruction_counter();
@@ -535,22 +546,39 @@ void InstructionsGenerator::visit(ASTNodeBoolLiteral *node) {
 }
 
 void InstructionsGenerator::visit(ASTNodeAssignExpression *node) {
-    auto &symbol = this->symtab.get_symbol(node->name);
+    if (node->lvalue) {
+        if (auto dereference = dynamic_cast<ASTNodeDereference *>(node->lvalue)) {
+            auto &symbol = this->symtab.get_symbol(dereference->identifier);
+            if (symbol.is_pointing_to_stack) {
+                node->expression->accept(this);
+                auto level = this->symtab.get_symbol_level(dereference->identifier);
+                this->generate(PL0_LIT, 0, level);
+                node->lvalue->accept(this);
+                this->generate(PL0_PST, 0, 0);
+            } else {
+                node->lvalue->accept(this);
+                node->expression->accept(this);
+                this->generate(PL0_STA, 0, 0);
+            }
+        }
+    } else {
+        auto &symbol = this->symtab.get_symbol(node->name);
 
-    node->expression->accept(this);
+        node->expression->accept(this);
 
-    if (dynamic_cast<ASTNodeReference *>(node->expression))
-        symbol.is_pointing_to_stack = true;
-    else if (dynamic_cast<ASTNodeNew *>(node->expression))
-        symbol.is_pointing_to_stack = false;
-    else if (auto binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(node->expression)) {
-        if (binary_operator->contains_reference())
+        if (dynamic_cast<ASTNodeReference *>(node->expression))
             symbol.is_pointing_to_stack = true;
-    }
+        else if (dynamic_cast<ASTNodeNew *>(node->expression))
+            symbol.is_pointing_to_stack = false;
+        else if (auto binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(node->expression)) {
+            if (binary_operator->contains_reference())
+                symbol.is_pointing_to_stack = true;
+        }
 
-    auto address = symbol.address;
-    auto level = this->symtab.get_symbol_level(node->name);
-    this->generate(PL0_STO, level, address);
+        auto address = symbol.address;
+        auto level = this->symtab.get_symbol_level(node->name);
+        this->generate(PL0_STO, level, address);
+    }
 }
 
 void InstructionsGenerator::visit(ASTNodeBinaryOperator *node) {
@@ -619,32 +647,4 @@ void InstructionsGenerator::visit(ASTNodeDereference *node) {
 void InstructionsGenerator::visit(ASTNodeReference *node) {
     auto address = this->symtab.get_symbol(node->identifier).address;
     this->generate(PL0_LIT, 0, address);
-}
-
-void InstructionsGenerator::visit(ASTNodeDynamicAssignExpression *node) {
-    if (auto dereference = dynamic_cast<ASTNodeDereference *>(node->left)) {
-        auto &symbol = this->symtab.get_symbol(dereference->identifier);
-        if (symbol.is_pointing_to_stack) {
-            node->right->accept(this);
-            auto level = this->symtab.get_symbol_level(dereference->identifier);
-            this->generate(PL0_LIT, 0, level);
-            node->left->accept(this);
-            this->generate(PL0_PST, 0, 0);
-        } else {
-            node->left->accept(this);
-            node->right->accept(this);
-            this->generate(PL0_STA, 0, 0);
-        }
-    }
-}
-
-void InstructionsGenerator::visit(ASTNodeGoto *node) {
-    if (!node->label.empty()) {
-        auto jump_instruction_line = this->get_instruction_counter();
-        this->labels_to_line[node->label] = jump_instruction_line;
-    }
-
-    auto jump_instruction_line = this->get_instruction_counter();
-    this->generate(PL0_JMP, 0, 0);
-    this->goto_labels_line[node->label_to_go_to] = jump_instruction_line;
 }

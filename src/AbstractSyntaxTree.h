@@ -13,6 +13,7 @@ class ASTNodeWhile;
 class ASTNodeFor;
 class ASTNodeBreakContinue;
 class ASTNodeReturn;
+class ASTNodeGoto;
 class ASTNodeExpressionStatement;
 class ASTNodeIdentifier;
 class ASTNodeIntLiteral;
@@ -26,8 +27,6 @@ class ASTNodeNew;
 class ASTNodeDelete;
 class ASTNodeDereference;
 class ASTNodeReference;
-class ASTNodeDynamicAssignExpression;
-class ASTNodeGoto;
 
 class ASTVisitor {
 public:
@@ -41,6 +40,7 @@ public:
     virtual void visit(ASTNodeFor *node) = 0;
     virtual void visit(ASTNodeBreakContinue *node) = 0;
     virtual void visit(ASTNodeReturn *node) = 0;
+    virtual void visit(ASTNodeGoto *node) = 0;
     virtual void visit(ASTNodeExpressionStatement *node) = 0;
     virtual void visit(ASTNodeIdentifier *node) = 0;
     virtual void visit(ASTNodeIntLiteral *node) = 0;
@@ -54,8 +54,6 @@ public:
     virtual void visit(ASTNodeDelete *node) = 0;
     virtual void visit(ASTNodeDereference *node) = 0;
     virtual void visit(ASTNodeReference *node) = 0;
-    virtual void visit(ASTNodeDynamicAssignExpression *node) = 0;
-    virtual void visit(ASTNodeGoto *node) = 0;
 };
 
 class ASTNode {
@@ -63,7 +61,6 @@ public:
     int line = -1;
     virtual ~ASTNode() = default;
 
-    virtual void debug_print() = 0;
     virtual void accept(ASTVisitor *visitor) = 0;
 };
 
@@ -72,7 +69,6 @@ public:
     int line = -1;
     ~ASTNodeExpression() override = default;
 
-    void debug_print() override = 0;
     void accept(ASTVisitor *visitor) override = 0;
 };
 
@@ -82,7 +78,6 @@ public:
     std::string label;
     ~ASTNodeStatement() override = default;
 
-    void debug_print() override = 0;
     void accept(ASTVisitor *visitor) override = 0;
 };
 
@@ -105,10 +100,6 @@ public:
     std::vector<int> get_sizeof_variables();
     bool contains_return_statement();
 
-    void debug_print() override {
-        for (auto &statement : statements)
-            statement->debug_print();
-    }
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);
     }
@@ -133,16 +124,6 @@ public:
         delete expression;
     }
 
-    void debug_print() override {
-        if (is_const)
-            std::cout << "const ";
-        for (int i = 0; i < is_pointer; i++)
-            std::cout << "*";
-        std::cout << "var " << name << " : " << type << " = ";
-        if (expression)
-            expression->debug_print();
-        std::cout << std::endl;
-    }
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);
     }
@@ -167,13 +148,6 @@ public:
             delete parameter;
     }
 
-    void debug_print() override {
-        std::cout << "func " << name << "(";
-        for (auto &parameter : parameters)
-            std::cout << parameter->name << " : " << parameter->type << ", ";
-        std::cout << ") : " << return_type << std::endl;
-        block->debug_print();
-    }
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);
     }
@@ -199,16 +173,6 @@ public:
 
     bool contains_return_statement();
 
-    void debug_print() override {
-        std::cout << "if ";
-        condition->debug_print();
-        std::cout << std::endl;
-        block->debug_print();
-        if (else_block) {
-            std::cout << "else" << std::endl;
-            else_block->debug_print();
-        }
-    }
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);
     }
@@ -224,12 +188,6 @@ public:
         /* Empty */
     }
 
-    void debug_print() override {
-        if (is_break)
-            std::cout << "break";
-        else
-            std::cout << "continue";
-    }
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);
     }
@@ -255,19 +213,6 @@ public:
         delete block;
     }
 
-    void debug_print() override {
-        if (is_do_while) {
-            std::cout << "do ";
-            block->debug_print();
-            std::cout << "while ";
-            condition->debug_print();
-        } else {
-            std::cout << "while ";
-            condition->debug_print();
-            std::cout << std::endl;
-            block->debug_print();
-        }
-    }
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);
     }
@@ -295,16 +240,6 @@ public:
         delete block;
     }
 
-    void debug_print() override {
-        std::cout << "for ";
-        init->debug_print();
-        std::cout << " ";
-        condition->debug_print();
-        std::cout << " ";
-        increment->debug_print();
-        std::cout << std::endl;
-        block->debug_print();
-    }
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);
     }
@@ -324,12 +259,23 @@ public:
         delete expression;
     }
 
-    void debug_print() override {
-        std::cout << "return ";
-        if (expression)
-            expression->debug_print();
-        std::cout << std::endl;
+    void accept(ASTVisitor *visitor) override {
+        visitor->visit(this);
     }
+};
+
+class ASTNodeGoto : public ASTNodeStatement {
+public:
+    int line;
+    std::string label;
+    std::string label_to_go_to;
+
+    explicit ASTNodeGoto(const std::string &label, int line) : label_to_go_to(label), line(line) {
+        /* Empty */
+    }
+
+    ~ASTNodeGoto() override = default;
+
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);
     }
@@ -349,10 +295,6 @@ public:
         delete expression;
     }
 
-    void debug_print() override {
-        expression->debug_print();
-        std::cout << std::endl;
-    }
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);
     }
@@ -367,9 +309,6 @@ public:
         /* Empty */
     }
 
-    void debug_print() override {
-        std::cout << name;
-    }
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);
     }
@@ -384,9 +323,6 @@ public:
         /* Empty */
     }
 
-    void debug_print() override {
-        std::cout << value;
-    }
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);
     }
@@ -401,9 +337,6 @@ public:
         /* Empty */
     }
 
-    void debug_print() override {
-        std::cout << value;
-    }
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);
     }
@@ -413,9 +346,10 @@ class ASTNodeAssignExpression : public ASTNodeExpression {
 public:
     int line;
     std::string name;
+    ASTNodeExpression *lvalue;
     ASTNodeExpression *expression;
 
-    ASTNodeAssignExpression(const std::string &name, ASTNodeExpression *expression, int line) : name(name), expression(expression), line(line) {
+    ASTNodeAssignExpression(const std::string &name, ASTNodeExpression *lvalue, ASTNodeExpression *expression, int line) : name(name), lvalue(lvalue), expression(expression), line(line) {
         /* Empty */
     }
 
@@ -423,10 +357,6 @@ public:
         delete expression;
     }
 
-    void debug_print() override {
-        std::cout << name << " = ";
-        expression->debug_print();
-    }
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);
     }
@@ -451,13 +381,6 @@ public:
     bool contains_reference();
     std::string find_dereference();
 
-    void debug_print() override {
-        std::cout << "(";
-        left->debug_print();
-        std::cout << " " << op << " ";
-        right->debug_print();
-        std::cout << ")";
-    }
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);
     }
@@ -477,10 +400,6 @@ public:
         delete expression;
     }
 
-    void debug_print() override {
-        std::cout << op;
-        expression->debug_print();
-    }
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);
     }
@@ -500,10 +419,6 @@ public:
         delete expression;
     }
 
-    void debug_print() override {
-        std::cout << "(" << type << ")";
-        expression->debug_print();
-    }
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);
     }
@@ -525,14 +440,6 @@ public:
         }
     }
 
-    void debug_print() override {
-        std::cout << name << "(";
-        for (auto &argument : arguments) {
-            argument->debug_print();
-            std::cout << ", ";
-        }
-        std::cout << ")";
-    }
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);
     }
@@ -552,11 +459,6 @@ public:
         delete expression;
     }
 
-    void debug_print() override {
-        std::cout << "new " << type << "[";
-        expression->debug_print();
-        std::cout << "]";
-    }
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);
     }
@@ -575,10 +477,6 @@ public:
         delete expression;
     }
 
-    void debug_print() override {
-        std::cout << "delete ";
-        expression->debug_print();
-    }
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);
     }
@@ -602,10 +500,6 @@ public:
 
     void what_do_i_dereference();
 
-    void debug_print() override {
-        std::cout << "*";
-        expression->debug_print();
-    }
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);
     }
@@ -622,54 +516,6 @@ public:
 
     ~ASTNodeReference() override = default;
 
-    void debug_print() override {
-        std::cout << "&" << identifier;
-    }
-    void accept(ASTVisitor *visitor) override {
-        visitor->visit(this);
-    }
-};
-
-class ASTNodeDynamicAssignExpression : public ASTNodeExpression {
-public:
-    int line;
-    ASTNodeExpression *left;
-    ASTNodeExpression *right;
-
-    ASTNodeDynamicAssignExpression(ASTNodeExpression *left, ASTNodeExpression *right, int line) : left(left), right(right), line(line) {
-        /* Empty */
-    }
-
-    ~ASTNodeDynamicAssignExpression() override {
-        delete left;
-        delete right;
-    }
-
-    void debug_print() override {
-        left->debug_print();
-        std::cout << " = ";
-        right->debug_print();
-    }
-    void accept(ASTVisitor *visitor) override {
-        visitor->visit(this);
-    }
-};
-
-class ASTNodeGoto : public ASTNodeStatement {
-public:
-    int line;
-    std::string label;
-    std::string label_to_go_to;
-
-    explicit ASTNodeGoto(const std::string &label, int line) : label_to_go_to(label), line(line) {
-        /* Empty */
-    }
-
-    ~ASTNodeGoto() override = default;
-
-    void debug_print() override {
-        std::cout << "goto " << label;
-    }
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);
     }

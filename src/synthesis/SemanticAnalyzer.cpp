@@ -290,6 +290,19 @@ void SemanticAnalyzer::visit(ASTNodeReturn *node) {
         node->expression->accept(this);
 }
 
+void SemanticAnalyzer::visit(ASTNodeGoto *node) {
+    node->label = node->ASTNodeStatement::label;
+    if (!node->label.empty()) {
+        if (std::find(this->declared_labels.begin(), this->declared_labels.end(), node->label) != this->declared_labels.end()) {
+            std::cerr << "Semantic error: label \"" << node->label << "\" already declared, error on line " << node->line << std::endl;
+            exit(1);
+        }
+        this->declared_labels.push_back(node->label);
+    }
+
+    this->used_labels.emplace_back(node->label_to_go_to, node->line);
+}
+
 void SemanticAnalyzer::visit(ASTNodeExpressionStatement *node) {
     node->label = node->ASTNodeStatement::label;
     if (!node->label.empty()) {
@@ -321,57 +334,62 @@ void SemanticAnalyzer::visit(ASTNodeBoolLiteral *node) {
 
 void SemanticAnalyzer::visit(ASTNodeAssignExpression *node) {
     auto &symbol = this->symtab.get_symbol(node->name);
-    if (symbol == undefined_record) {
-        std::cerr << "Semantic error: variable \"" << node->name << "\" not declared, error on line " << node->line << std::endl;
-        exit(1);
-    }
 
-    if (symbol.is_const && this->assigned_constants[node->name]) {
-        std::cerr << "Semantic error: variable \"" << node->name << "\" is constant and can only be assigned once, error on line " << node->line << std::endl;
-        exit(1);
+    if (node->lvalue) {
+        if (!dynamic_cast<ASTNodeDereference *>(node->lvalue))
+            std::cerr << "Semantic error: lvalue required as left operand of assignment, error on line " << node->line << std::endl;
+        node->lvalue->accept(this);
     }
-
     node->expression->accept(this);
 
-    if (dynamic_cast<ASTNodeReference *>(node->expression)) {
-        if (!symbol.is_pointer) {
-            std::cerr << "Semantic error: variable \"" << node->name << "\" is not a pointer, error on line " << node->line << std::endl;
+    if (!node->lvalue) {
+        if (symbol == undefined_record) {
+            std::cerr << "Semantic error: variable \"" << node->name << "\" not declared, error on line " << node->line << std::endl;
             exit(1);
         }
-        symbol.is_pointing_to_stack = true;
-    }
-    else if (dynamic_cast<ASTNodeNew *>(node->expression)) {
-        if (!symbol.is_pointer) {
-            std::cerr << "Semantic error: variable \"" << node->name << "\" is not a pointer, error on line " << node->line << std::endl;
+
+        if (symbol.is_const && this->assigned_constants[node->name]) {
+            std::cerr << "Semantic error: variable \"" << node->name << "\" is constant and can only be assigned once, error on line " << node->line << std::endl;
             exit(1);
         }
-        symbol.is_pointing_to_stack = false;
-    }
-    else if (auto binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(node->expression)) {
-        if (binary_operator->contains_reference()) {
+
+        if (dynamic_cast<ASTNodeReference *>(node->expression)) {
             if (!symbol.is_pointer) {
                 std::cerr << "Semantic error: variable \"" << node->name << "\" is not a pointer, error on line " << node->line << std::endl;
                 exit(1);
             }
             symbol.is_pointing_to_stack = true;
-        }
-    }
-
-    if (symbol.is_pointer) {
-        if (!dynamic_cast<ASTNodeReference *>(node->expression) && !dynamic_cast<ASTNodeNew *>(node->expression)) {
-            std::cerr << "Semantic error: variable \"" << node->name << "\" is a pointer and must be assigned with a reference or new, error on line " << node->line << std::endl;
-            exit(1);
-        }
-        else if (auto binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(node->expression)) {
-            if (!binary_operator->contains_reference()) {
-                std::cerr << "Semantic error: variable \"" << node->name << "\" is a pointer and must be assigned with a reference or new, error on line " << node->line << std::endl;
+        } else if (dynamic_cast<ASTNodeNew *>(node->expression)) {
+            if (!symbol.is_pointer) {
+                std::cerr << "Semantic error: variable \"" << node->name << "\" is not a pointer, error on line " << node->line << std::endl;
                 exit(1);
             }
+            symbol.is_pointing_to_stack = false;
+        } else if (auto binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(node->expression)) {
+            if (binary_operator->contains_reference()) {
+                if (!symbol.is_pointer) {
+                    std::cerr << "Semantic error: variable \"" << node->name << "\" is not a pointer, error on line " << node->line << std::endl;
+                    exit(1);
+                }
+                symbol.is_pointing_to_stack = true;
+            }
         }
-    }
 
-    if (symbol.is_const)
-        this->assigned_constants[node->name] = true;
+        if (symbol.is_pointer) {
+            if (!dynamic_cast<ASTNodeReference *>(node->expression) && !dynamic_cast<ASTNodeNew *>(node->expression)) {
+                std::cerr << "Semantic error: variable \"" << node->name << "\" is a pointer and must be assigned with a reference or new, error on line " << node->line << std::endl;
+                exit(1);
+            } else if (auto binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(node->expression)) {
+                if (!binary_operator->contains_reference()) {
+                    std::cerr << "Semantic error: variable \"" << node->name << "\" is a pointer and must be assigned with a reference or new, error on line " << node->line << std::endl;
+                    exit(1);
+                }
+            }
+        }
+
+        if (symbol.is_const)
+            this->assigned_constants[node->name] = true;
+    }
 }
 
 void SemanticAnalyzer::visit(ASTNodeBinaryOperator *node) {
@@ -435,22 +453,4 @@ void SemanticAnalyzer::visit(ASTNodeReference *node) {
         std::cerr << "Semantic error: variable \"" << node->identifier << "\" not declared, error on line " << node->line << std::endl;
         exit(1);
     }
-}
-
-void SemanticAnalyzer::visit(ASTNodeDynamicAssignExpression *node) {
-    node->left->accept(this);
-    node->right->accept(this);
-}
-
-void SemanticAnalyzer::visit(ASTNodeGoto *node) {
-    node->label = node->ASTNodeStatement::label;
-    if (!node->label.empty()) {
-        if (std::find(this->declared_labels.begin(), this->declared_labels.end(), node->label) != this->declared_labels.end()) {
-            std::cerr << "Semantic error: label \"" << node->label << "\" already declared, error on line " << node->line << std::endl;
-            exit(1);
-        }
-        this->declared_labels.push_back(node->label);
-    }
-
-    this->used_labels.emplace_back(node->label_to_go_to, node->line);
 }

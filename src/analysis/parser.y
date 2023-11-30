@@ -359,16 +359,13 @@ expr:
 
 assign_expr:
     ID ASSIGN_OP expr {
-        $$ = new ASTNodeAssignExpression(*$1, $3, yylineno);
+        $$ = new ASTNodeAssignExpression(*$1, nullptr, $3, yylineno);
         delete $1;
     }
     | expr ASSIGN_OP expr {
-        if (auto deref = dynamic_cast<ASTNodeDereference *>($1)) {
+        if (auto deref = dynamic_cast<ASTNodeDereference *>($1))
             deref->is_lvalue = true;
-            $$ = new ASTNodeDynamicAssignExpression(deref, $3, yylineno);
-        }
-        else
-            std::cerr << "Syntax error: lvalue required as left operand of assignment, in line " << yylineno << ", column " << column << std::endl;
+        $$ = new ASTNodeAssignExpression("", $1, $3, yylineno);
     }
 ;
 
