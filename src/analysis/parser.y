@@ -47,7 +47,7 @@
 
 %type <string> ID TYPE INT_LITERAL BOOL_LITERAL ADD SUB MUL DIV MOD AND OR NOT EQ NEQ LESS LESSEQ GRT GRTEQ ASSIGN_OP
 %type <expr> expr arithm_expr logic_expr compare_expr cast_expr call_func_expr assign_expr memory_expr
-%type <stmt> stmt decl_var_stmt decl_func_stmt if_stmt loop_stmt while_stmt do_while_stmt repeat_until_stmt for_stmt jump_stmt break_stmt continue_stmt return_stmt goto_stmt
+%type <stmt> stmt decl_var_stmt decl_func_stmt if_stmt loop_stmt while_stmt do_while_stmt until_do_stmt repeat_until_stmt for_stmt jump_stmt break_stmt continue_stmt return_stmt goto_stmt
 %type <block> program stmts block else_stmt
 %type <params> params params_list
 %type <args> args args_list
@@ -239,6 +239,9 @@ loop_stmt:
     | do_while_stmt {
         $$ = $1;
     }
+    | until_do_stmt {
+        $$ = $1;
+    }
     | repeat_until_stmt {
         $$ = $1;
     }
@@ -256,6 +259,12 @@ while_stmt:
 do_while_stmt:
     DO block WHILE L_BRACKET expr R_BRACKET SEMICOLON {
         $$ = new ASTNodeWhile($5, $2, true, false, yylineno);
+    }
+;
+
+until_do_stmt:
+    UNTIL L_BRACKET expr R_BRACKET DO block SEMICOLON {
+        $$ = new ASTNodeWhile($3, $6, false, true, yylineno);
     }
 ;
 

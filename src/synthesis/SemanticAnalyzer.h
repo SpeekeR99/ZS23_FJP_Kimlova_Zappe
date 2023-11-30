@@ -15,6 +15,7 @@ private:
     std::vector<std::string> used_builtin_functions;
     std::vector<std::string> declared_labels;
     std::vector<std::pair<std::string, int>> used_labels;
+    std::map<std::string, bool> defined_variables;
 
 public:
 

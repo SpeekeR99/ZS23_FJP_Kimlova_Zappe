@@ -105,6 +105,7 @@ void SemanticAnalyzer::visit(ASTNodeDeclVar *node) {
     if (node->expression) {
         this->assigned_constants[node->name] = true;
         node->expression->accept(this);
+        this->defined_variables[node->name] = true;
 
         if (dynamic_cast<ASTNodeReference *>(node->expression)) {
             if (!node->is_pointer) {
@@ -173,6 +174,7 @@ void SemanticAnalyzer::visit(ASTNodeDeclFunc *node) {
         for (auto &parameter: node->parameters) {
             parameter->accept(this);
             decl_func_symbol.parameters.push_back(this->symtab.get_symbol(parameter->name));
+            defined_variables[parameter->name] = true;
         }
 
         this->current_functions.emplace_back(node->name, node->line);
@@ -322,6 +324,10 @@ void SemanticAnalyzer::visit(ASTNodeIdentifier *node) {
         std::cerr << "Semantic error: variable \"" << node->name << "\" not declared, error on line " << node->line << std::endl;
         exit(1);
     }
+    if (!this->defined_variables[node->name]) {
+        std::cerr << "Semantic error: variable \"" << node->name << "\" used before definition, error on line " << node->line << std::endl;
+        exit(1);
+    }
 }
 
 void SemanticAnalyzer::visit(ASTNodeIntLiteral *node) {
@@ -341,6 +347,13 @@ void SemanticAnalyzer::visit(ASTNodeAssignExpression *node) {
         node->lvalue->accept(this);
     }
     node->expression->accept(this);
+
+    this->defined_variables[node->name] = true;
+
+    if (dynamic_cast<ASTNodeAssignExpression *>(node->expression)) {
+        std::cerr << "Multi assignment is not supported, error on line " << node->line << std::endl;
+        exit(1);
+    }
 
     if (!node->lvalue) {
         if (symbol == undefined_record) {
