@@ -98,6 +98,8 @@ private:
     std::vector<uint32_t> continue_stack;
     std::vector<uint32_t> sizeof_params_stack;
     std::vector<uint32_t> sizeof_return_type_stack;
+    std::map<std::string, uint32_t> labels_to_line;
+    std::map<std::string, uint32_t> goto_labels_line;
 
     void generate(const std::string &instruction, int level, int parameter);
     void generate(InstructionIndex instruction, int level, int parameter);
@@ -140,4 +142,5 @@ public:
     void visit(ASTNodeDereference *node) override;
     void visit(ASTNodeReference *node) override;
     void visit(ASTNodeDynamicAssignExpression *node) override;
+    void visit(ASTNodeGoto *node) override;
 };

@@ -13,6 +13,8 @@ private:
     std::vector<std::pair<std::string, int>> current_functions;
     int current_loop_level;
     std::vector<std::string> used_builtin_functions;
+    std::vector<std::string> declared_labels;
+    std::vector<std::pair<std::string, int>> used_labels;
 
 public:
 
@@ -45,4 +47,5 @@ public:
     void visit(ASTNodeDereference *node) override;
     void visit(ASTNodeReference *node) override;
     void visit(ASTNodeDynamicAssignExpression *node) override;
+    void visit(ASTNodeGoto *node) override;
 };

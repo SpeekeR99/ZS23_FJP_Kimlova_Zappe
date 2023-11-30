@@ -199,6 +199,11 @@ void InstructionsGenerator::generate() {
     for (auto &statement: this->global_block->statements)
         statement->accept(this);
 
+    for (auto [key, value] : this->goto_labels_line) {
+        auto &goto_instruction = this->get_instruction(value);
+        goto_instruction.parameter = this->labels_to_line[key];
+    }
+
     auto sizeof_global_variables = symtab.get_sizeof_variables();
     this->get_instruction(int_instruction_line).parameter = sizeof_global_variables + ACTIVATION_RECORD_SIZE;
 
@@ -249,6 +254,11 @@ void InstructionsGenerator::visit(ASTNodeBlock *node) {
 }
 
 void InstructionsGenerator::visit(ASTNodeDeclVar *node) {
+    if (!node->label.empty()) {
+        auto jump_instruction_line = this->get_instruction_counter();
+        this->labels_to_line[node->label] = jump_instruction_line;
+    }
+
     std::string dummy_name = "__DUMMY_" + std::to_string(this->number_of_declared_variables.back()++) + "__";
     this->symtab.change_symbol_name(dummy_name, node->name);
     auto &symbol = this->symtab.get_symbol(node->name);
@@ -274,6 +284,11 @@ void InstructionsGenerator::visit(ASTNodeDeclVar *node) {
 }
 
 void InstructionsGenerator::visit(ASTNodeDeclFunc *node) {
+    if (!node->label.empty()) {
+        auto jump_instruction_line = this->get_instruction_counter();
+        this->labels_to_line[node->label] = jump_instruction_line;
+    }
+
     auto jump_over_func_instr_index = this->get_instruction_counter();
     this->generate(PL0_JMP, 0, 0);
     auto func_address = this->get_instruction_counter();
@@ -315,6 +330,11 @@ void InstructionsGenerator::visit(ASTNodeDeclFunc *node) {
 }
 
 void InstructionsGenerator::visit(ASTNodeIf *node) {
+    if (!node->label.empty()) {
+        auto jump_instruction_line = this->get_instruction_counter();
+        this->labels_to_line[node->label] = jump_instruction_line;
+    }
+
     auto current_scope = this->symtab.get_current_scope();
     auto new_base = current_scope.get_address_base() + current_scope.get_address_offset();
     this->symtab.insert_scope(new_base, 0, false);
@@ -345,6 +365,11 @@ void InstructionsGenerator::visit(ASTNodeIf *node) {
 }
 
 void InstructionsGenerator::visit(ASTNodeWhile *node) {
+    if (!node->label.empty()) {
+        auto jump_instruction_line = this->get_instruction_counter();
+        this->labels_to_line[node->label] = jump_instruction_line;
+    }
+
     node->block->count_breaks_and_continues();
     node->break_number = node->block->break_number;
     node->continue_number = node->block->continue_number;
@@ -415,6 +440,11 @@ void InstructionsGenerator::visit(ASTNodeWhile *node) {
 }
 
 void InstructionsGenerator::visit(ASTNodeFor *node) {
+    if (!node->label.empty()) {
+        auto jump_instruction_line = this->get_instruction_counter();
+        this->labels_to_line[node->label] = jump_instruction_line;
+    }
+
     node->block->count_breaks_and_continues();
     node->break_number = node->block->break_number;
     node->continue_number = node->block->continue_number;
@@ -452,6 +482,11 @@ void InstructionsGenerator::visit(ASTNodeFor *node) {
 }
 
 void InstructionsGenerator::visit(ASTNodeBreakContinue *node) {
+    if (!node->label.empty()) {
+        auto jump_instruction_line = this->get_instruction_counter();
+        this->labels_to_line[node->label] = jump_instruction_line;
+    }
+
     auto jmp_instruction_line = this->get_instruction_counter();
     this->generate(PL0_JMP, 0, 0);
     if (node->is_break)
@@ -461,6 +496,11 @@ void InstructionsGenerator::visit(ASTNodeBreakContinue *node) {
 }
 
 void InstructionsGenerator::visit(ASTNodeReturn *node) {
+    if (!node->label.empty()) {
+        auto jump_instruction_line = this->get_instruction_counter();
+        this->labels_to_line[node->label] = jump_instruction_line;
+    }
+
     if (node->expression)
         node->expression->accept(this);
 
@@ -471,6 +511,11 @@ void InstructionsGenerator::visit(ASTNodeReturn *node) {
 }
 
 void InstructionsGenerator::visit(ASTNodeExpressionStatement *node) {
+    if (!node->label.empty()) {
+        auto jump_instruction_line = this->get_instruction_counter();
+        this->labels_to_line[node->label] = jump_instruction_line;
+    }
+
     node->expression->accept(this);
 }
 
@@ -591,4 +636,15 @@ void InstructionsGenerator::visit(ASTNodeDynamicAssignExpression *node) {
             this->generate(PL0_STA, 0, 0);
         }
     }
+}
+
+void InstructionsGenerator::visit(ASTNodeGoto *node) {
+    if (!node->label.empty()) {
+        auto jump_instruction_line = this->get_instruction_counter();
+        this->labels_to_line[node->label] = jump_instruction_line;
+    }
+
+    auto jump_instruction_line = this->get_instruction_counter();
+    this->generate(PL0_JMP, 0, 0);
+    this->goto_labels_line[node->label_to_go_to] = jump_instruction_line;
 }

@@ -20,7 +20,7 @@ Jednoducha rozsireni (1b kazde):
  10 Prikazy pro vstup a vystup                                              (DONE)
 
 Slozitejsi rozsireni (2b kazde):
-  1 Prikaz GOTO                                                             (NOT IMPLEMENTED)
+  1 Prikaz GOTO                                                             (DONE)
   2 Datovy typ ratio + operace s nim                                        (NOT IMPLEMENTED)
   3 Slozeny datovy typ (struct, record)                                     (NOT IMPLEMENTED)
   4 Pole a prace s jeho prvky                                               (DONE)

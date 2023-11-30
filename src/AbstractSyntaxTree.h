@@ -27,6 +27,7 @@ class ASTNodeDelete;
 class ASTNodeDereference;
 class ASTNodeReference;
 class ASTNodeDynamicAssignExpression;
+class ASTNodeGoto;
 
 class ASTVisitor {
 public:
@@ -54,6 +55,7 @@ public:
     virtual void visit(ASTNodeDereference *node) = 0;
     virtual void visit(ASTNodeReference *node) = 0;
     virtual void visit(ASTNodeDynamicAssignExpression *node) = 0;
+    virtual void visit(ASTNodeGoto *node) = 0;
 };
 
 class ASTNode {
@@ -77,6 +79,7 @@ public:
 class ASTNodeStatement : public ASTNode {
 public:
     int line = -1;
+    std::string label;
     ~ASTNodeStatement() override = default;
 
     void debug_print() override = 0;
@@ -120,6 +123,7 @@ public:
     bool is_const;
     ASTNodeExpression *expression;
     int is_pointer;
+    std::string label;
 
     ASTNodeDeclVar(const std::string &type, int is_pointer, const std::string &name, bool is_const, ASTNodeExpression *expression, int line) : name(name), is_pointer(is_pointer), type(type), is_const(is_const), expression(expression), line(line) {
         sizeof_type = sizeof_val_type(str_to_val_type(type));
@@ -151,6 +155,7 @@ public:
     std::string name;
     std::vector<ASTNodeDeclVar *> parameters;
     ASTNodeBlock *block;
+    std::string label;
 
     ASTNodeDeclFunc( const std::string &return_type, const std::string &name, std::vector<ASTNodeDeclVar *> parameters, ASTNodeBlock *block, int line) : return_type(return_type), name(name), parameters(std::move(parameters)), block(block), line(line) {
         /* Empty */
@@ -180,6 +185,7 @@ public:
     ASTNodeExpression *condition;
     ASTNodeBlock *block;
     ASTNodeBlock *else_block;
+    std::string label;
 
     ASTNodeIf(ASTNodeExpression *condition, ASTNodeBlock *block, ASTNodeBlock *else_block, int line) : condition(condition), block(block), else_block(else_block), line(line) {
         /* Empty */
@@ -212,6 +218,7 @@ class ASTNodeBreakContinue : public ASTNodeStatement {
 public:
     int line;
     bool is_break;
+    std::string label;
 
     explicit ASTNodeBreakContinue(bool is_break, int line) : is_break(is_break), line(line) {
         /* Empty */
@@ -237,6 +244,7 @@ public:
     bool is_repeat_until = false;
     int break_number = 0;
     int continue_number = 0;
+    std::string label;
 
     ASTNodeWhile(ASTNodeExpression *condition, ASTNodeBlock *block, bool is_do_while, bool is_repeat_until, int line) : condition(condition), block(block), is_do_while(is_do_while), is_repeat_until(is_repeat_until), line(line) {
         /* Empty */
@@ -274,6 +282,7 @@ public:
     ASTNodeBlock *block;
     int break_number = 0;
     int continue_number = 0;
+    std::string label;
 
     ASTNodeFor(ASTNodeStatement *init, ASTNodeExpression *condition, ASTNodeExpression *increment, ASTNodeBlock *block, int line) : init(init), condition(condition), increment(increment), block(block), line(line) {
         /* Empty */
@@ -305,6 +314,7 @@ class ASTNodeReturn : public ASTNodeStatement {
 public:
     int line;
     ASTNodeExpression *expression;
+    std::string label;
 
     explicit ASTNodeReturn(ASTNodeExpression *expression, int line) : expression(expression), line(line) {
         /* Empty */
@@ -329,6 +339,7 @@ class ASTNodeExpressionStatement : public ASTNodeStatement {
 public:
     int line;
     ASTNodeExpression *expression;
+    std::string label;
 
     ASTNodeExpressionStatement(ASTNodeExpression *expression, int line) : expression(expression), line(line) {
         /* Empty */
@@ -638,6 +649,26 @@ public:
         left->debug_print();
         std::cout << " = ";
         right->debug_print();
+    }
+    void accept(ASTVisitor *visitor) override {
+        visitor->visit(this);
+    }
+};
+
+class ASTNodeGoto : public ASTNodeStatement {
+public:
+    int line;
+    std::string label;
+    std::string label_to_go_to;
+
+    explicit ASTNodeGoto(const std::string &label, int line) : label_to_go_to(label), line(line) {
+        /* Empty */
+    }
+
+    ~ASTNodeGoto() override = default;
+
+    void debug_print() override {
+        std::cout << "goto " << label;
     }
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);

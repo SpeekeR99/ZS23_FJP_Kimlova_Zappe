@@ -2,7 +2,7 @@
 
 SemanticAnalyzer::SemanticAnalyzer(ASTNodeBlock *global_block) : global_block(global_block), symtab(),
                                                                  declared_functions(), problematic_forward_referenced_functions(), assigned_constants(),
-                                                                 current_functions(), current_loop_level(0), used_builtin_functions() {
+                                                                 current_functions(), current_loop_level(0), used_builtin_functions(), declared_labels(), used_labels() {
     /* Empty */
 }
 
@@ -20,6 +20,20 @@ void SemanticAnalyzer::analyze() {
 
     for (auto &statement: this->global_block->statements)
         statement->accept(this);
+
+    for (auto &used_label : this->used_labels) {
+        bool found = false;
+        for (auto &declared_label : this->declared_labels) {
+            if (used_label.first == declared_label) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            std::cerr << "Semantic error: label \"" << used_label.first << "\" not declared, error on line " << used_label.second << std::endl;
+            exit(1);
+        }
+    }
 
     auto main_func = symtab.get_symbol("main");
     if (main_func == undefined_record) {
@@ -74,6 +88,15 @@ void SemanticAnalyzer::visit(ASTNodeDeclVar *node) {
     if (node->type == "void") {
         std::cerr << "Semantic error: variable \"" << node->name << "\" cannot be of type void, error on line " << node->line << std::endl;
         exit(1);
+    }
+
+    node->label = node->ASTNodeStatement::label;
+    if (!node->label.empty()) {
+        if (std::find(this->declared_labels.begin(), this->declared_labels.end(), node->label) != this->declared_labels.end()) {
+            std::cerr << "Semantic error: label \"" << node->label << "\" already declared, error on line " << node->line << std::endl;
+            exit(1);
+        }
+        this->declared_labels.push_back(node->label);
     }
 
     this->symtab.insert_symbol(node->name, VARIABLE, node->type, node->is_const);
@@ -131,6 +154,15 @@ void SemanticAnalyzer::visit(ASTNodeDeclFunc *node) {
         exit(1);
     }
 
+    node->label = node->ASTNodeStatement::label;
+    if (!node->label.empty()) {
+        if (std::find(this->declared_labels.begin(), this->declared_labels.end(), node->label) != this->declared_labels.end()) {
+            std::cerr << "Semantic error: label \"" << node->label << "\" already declared, error on line " << node->line << std::endl;
+            exit(1);
+        }
+        this->declared_labels.push_back(node->label);
+    }
+
     if (func_symbol == undefined_record)
         this->symtab.insert_symbol(node->name, FUNCTION, node->return_type, false, 0);
 
@@ -159,6 +191,15 @@ void SemanticAnalyzer::visit(ASTNodeDeclFunc *node) {
 }
 
 void SemanticAnalyzer::visit(ASTNodeIf *node) {
+    node->label = node->ASTNodeStatement::label;
+    if (!node->label.empty()) {
+        if (std::find(this->declared_labels.begin(), this->declared_labels.end(), node->label) != this->declared_labels.end()) {
+            std::cerr << "Semantic error: label \"" << node->label << "\" already declared, error on line " << node->line << std::endl;
+            exit(1);
+        }
+        this->declared_labels.push_back(node->label);
+    }
+
     this->symtab.insert_scope(0, 0, false); /* No need to care about addressing here */
 
     node->condition->accept(this);
@@ -173,6 +214,15 @@ void SemanticAnalyzer::visit(ASTNodeIf *node) {
 }
 
 void SemanticAnalyzer::visit(ASTNodeWhile *node) {
+    node->label = node->ASTNodeStatement::label;
+    if (!node->label.empty()) {
+        if (std::find(this->declared_labels.begin(), this->declared_labels.end(), node->label) != this->declared_labels.end()) {
+            std::cerr << "Semantic error: label \"" << node->label << "\" already declared, error on line " << node->line << std::endl;
+            exit(1);
+        }
+        this->declared_labels.push_back(node->label);
+    }
+
     this->current_loop_level++;
     this->symtab.insert_scope(0, 0, false); /* No need to care about addressing here */
 
@@ -184,6 +234,15 @@ void SemanticAnalyzer::visit(ASTNodeWhile *node) {
 }
 
 void SemanticAnalyzer::visit(ASTNodeFor *node) {
+    node->label = node->ASTNodeStatement::label;
+    if (!node->label.empty()) {
+        if (std::find(this->declared_labels.begin(), this->declared_labels.end(), node->label) != this->declared_labels.end()) {
+            std::cerr << "Semantic error: label \"" << node->label << "\" already declared, error on line " << node->line << std::endl;
+            exit(1);
+        }
+        this->declared_labels.push_back(node->label);
+    }
+
     this->current_loop_level++;
     this->symtab.insert_scope(0, 0, false); /* No need to care about addressing here */
 
@@ -202,6 +261,15 @@ void SemanticAnalyzer::visit(ASTNodeFor *node) {
 }
 
 void SemanticAnalyzer::visit(ASTNodeBreakContinue *node) {
+    node->label = node->ASTNodeStatement::label;
+    if (!node->label.empty()) {
+        if (std::find(this->declared_labels.begin(), this->declared_labels.end(), node->label) != this->declared_labels.end()) {
+            std::cerr << "Semantic error: label \"" << node->label << "\" already declared, error on line " << node->line << std::endl;
+            exit(1);
+        }
+        this->declared_labels.push_back(node->label);
+    }
+
     if (!this->current_loop_level) {
         std::cerr << "Semantic error: break/continue statement outside of loop, error on line " << node->line << std::endl;
         exit(1);
@@ -209,11 +277,29 @@ void SemanticAnalyzer::visit(ASTNodeBreakContinue *node) {
 }
 
 void SemanticAnalyzer::visit(ASTNodeReturn *node) {
+    node->label = node->ASTNodeStatement::label;
+    if (!node->label.empty()) {
+        if (std::find(this->declared_labels.begin(), this->declared_labels.end(), node->label) != this->declared_labels.end()) {
+            std::cerr << "Semantic error: label \"" << node->label << "\" already declared, error on line " << node->line << std::endl;
+            exit(1);
+        }
+        this->declared_labels.push_back(node->label);
+    }
+
     if (node->expression)
         node->expression->accept(this);
 }
 
 void SemanticAnalyzer::visit(ASTNodeExpressionStatement *node) {
+    node->label = node->ASTNodeStatement::label;
+    if (!node->label.empty()) {
+        if (std::find(this->declared_labels.begin(), this->declared_labels.end(), node->label) != this->declared_labels.end()) {
+            std::cerr << "Semantic error: label \"" << node->label << "\" already declared, error on line " << node->line << std::endl;
+            exit(1);
+        }
+        this->declared_labels.push_back(node->label);
+    }
+
     node->expression->accept(this);
 }
 
@@ -354,4 +440,17 @@ void SemanticAnalyzer::visit(ASTNodeReference *node) {
 void SemanticAnalyzer::visit(ASTNodeDynamicAssignExpression *node) {
     node->left->accept(this);
     node->right->accept(this);
+}
+
+void SemanticAnalyzer::visit(ASTNodeGoto *node) {
+    node->label = node->ASTNodeStatement::label;
+    if (!node->label.empty()) {
+        if (std::find(this->declared_labels.begin(), this->declared_labels.end(), node->label) != this->declared_labels.end()) {
+            std::cerr << "Semantic error: label \"" << node->label << "\" already declared, error on line " << node->line << std::endl;
+            exit(1);
+        }
+        this->declared_labels.push_back(node->label);
+    }
+
+    this->used_labels.emplace_back(node->label_to_go_to, node->line);
 }

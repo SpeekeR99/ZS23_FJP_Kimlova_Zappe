@@ -1,11 +1,15 @@
 int main() {
 
     int a = 0;
-    int i = 0;
-    repeat {
-        i = i + 1;
-        a = a + i;
-    } until (i == 3);
+
+    int b = 2;
+
+    goto label;
+
+    int c = 3;
+
+    label:
+    a = 5;
 
     return 0;
 }

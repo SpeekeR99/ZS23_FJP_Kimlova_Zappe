@@ -52,6 +52,7 @@ continue                { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(CON
 return                  { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(RETURN); } }
 new                     { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(NEW); } }
 delete                  { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(DELETE); } }
+goto                    { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(GOTO); } }
 \+                      { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(ADD); } }
 \-                      { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(SUB); } }
 \*                      { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(MUL); } }
@@ -68,6 +69,7 @@ delete                  { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(DEL
 \>=                     { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(GRTEQ); } }
 \@                      { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(REF); } }
 \^                      { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(DEREF); } }
+\:                      { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(COLON); } }
 [ \t]+                  { HANDLE_COLUMN; }
 \r\n                    { HANDLE_COLUMN; next_column = 1; }
 \n                      { HANDLE_COLUMN; next_column = 1; }

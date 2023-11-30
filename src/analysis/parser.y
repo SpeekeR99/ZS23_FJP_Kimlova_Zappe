@@ -30,13 +30,13 @@
 }
 %define parse.error verbose
 
-%nonassoc TYPE ID INT_LITERAL BOOL_LITERAL CONSTANT BEGIN_BLOCK END_BLOCK
+%nonassoc TYPE ID LABEL INT_LITERAL BOOL_LITERAL CONSTANT BEGIN_BLOCK END_BLOCK
 
-%nonassoc IF ELSE FOR WHILE DO REPEAT UNTIL BREAK CONTINUE RETURN NEW DELETE
+%nonassoc IF ELSE FOR WHILE DO REPEAT UNTIL BREAK CONTINUE RETURN NEW DELETE GOTO
 %left AND OR NOT
 %left EQ NEQ LESS LESSEQ GRT GRTEQ
 
-%left SEMICOLON COMMA L_BRACKET R_BRACKET
+%left SEMICOLON COMMA L_BRACKET R_BRACKET COLON
 
 %right ASSIGN_OP
 
@@ -47,7 +47,7 @@
 
 %type <string> ID TYPE INT_LITERAL BOOL_LITERAL ADD SUB MUL DIV MOD AND OR NOT EQ NEQ LESS LESSEQ GRT GRTEQ ASSIGN_OP
 %type <expr> expr arithm_expr logic_expr compare_expr cast_expr call_func_expr assign_expr memory_expr
-%type <stmt> stmt decl_var_stmt decl_func_stmt if_stmt loop_stmt while_stmt do_while_stmt repeat_until_stmt for_stmt jump_stmt break_stmt continue_stmt return_stmt
+%type <stmt> stmt decl_var_stmt decl_func_stmt if_stmt loop_stmt while_stmt do_while_stmt repeat_until_stmt for_stmt jump_stmt break_stmt continue_stmt return_stmt goto_stmt
 %type <block> program stmts block else_stmt
 %type <params> params params_list
 %type <args> args args_list
@@ -183,6 +183,11 @@ stmts:
     stmts stmt {
         $1->statements.emplace_back($2);
     }
+    | stmts ID COLON stmt {
+        $4->label = *$2;
+        $1->statements.emplace_back($4);
+        delete $2;
+    }
     | %empty {
         $$ = new ASTNodeBlock();
     }
@@ -280,6 +285,9 @@ jump_stmt:
     | return_stmt {
         $$ = $1;
     }
+    | goto_stmt {
+        $$ = $1;
+    }
 ;
 
 break_stmt:
@@ -300,6 +308,13 @@ return_stmt:
     }
     | RETURN SEMICOLON {
         $$ = new ASTNodeReturn(nullptr, yylineno);
+    }
+;
+
+goto_stmt:
+    GOTO ID SEMICOLON {
+        $$ = new ASTNodeGoto(*$2, yylineno);
+        delete $2;
     }
 ;
 
