@@ -8,7 +8,7 @@ Zakladni funkcionalita (10b celkem):
   7 Definice podprogramu a volani                                           (DONE)
 
 Jednoducha rozsireni (1b kazde):
-  1 Kazdy dalsi typ cyklu (DO WHILE)                                        (DONE)
+  1 Kazdy dalsi typ cyklu (DO WHILE) (FOR)                                  (DONE) (Chybi: repeat until, foreach?)
   2 Else vetev                                                              (DONE)
   3 Datovy typ boolean + operace s nim                                      (DONE)
   4 Datovy typ real + operace s nim                                         (NOT IMPLEMENTED)

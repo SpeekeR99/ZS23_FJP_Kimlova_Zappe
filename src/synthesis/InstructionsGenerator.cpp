@@ -1,9 +1,9 @@
 #include "InstructionsGenerator.h"
 
 InstructionsGenerator::InstructionsGenerator(ASTNodeBlock *global_block, std::vector<std::string> &used_builtin_functions) : global_block(global_block), used_builtin_functions(used_builtin_functions), instructions(),
-                                                                                                                             instruction_counter(0), symtab(), number_of_declared_variables(),
-                                                                                                                             declared_functions(), break_stack(),
-                                                                                                                             continue_stack(), sizeof_params_stack() {
+                                                                           instruction_counter(0), symtab(), number_of_declared_variables(),
+                                                                           declared_functions(), break_stack(),
+                                                                           continue_stack(), sizeof_params_stack(), sizeof_return_type_stack() {
     /* Empty */
 }
 
@@ -237,7 +237,7 @@ void InstructionsGenerator::visit(ASTNodeBlock *node) {
 //    auto size_two = ...; /* TODO: once added other types, this should be expanded on */
     for (int i = 0; i < number_of_variables; i++) {
         if (sizeof_variables[i] == 1) /* TODO: don't forget to expand here too :) */
-            this->symtab.insert_symbol("DUMMY" + std::to_string(i), VARIABLE, size_one, false);
+            this->symtab.insert_symbol("__DUMMY_" + std::to_string(i) + "__", VARIABLE, size_one, false);
     }
     this->number_of_declared_variables.push_back(0);
 
@@ -246,11 +246,10 @@ void InstructionsGenerator::visit(ASTNodeBlock *node) {
 
     this->number_of_declared_variables.pop_back();
     this->generate(PL0_INT, 0, -sum_sizeof);
-    this->symtab.remove_scope();
 }
 
 void InstructionsGenerator::visit(ASTNodeDeclVar *node) {
-    std::string dummy_name = "DUMMY" + std::to_string(this->number_of_declared_variables.back()++);
+    std::string dummy_name = "__DUMMY_" + std::to_string(this->number_of_declared_variables.back()++) + "__";
     this->symtab.change_symbol_name(dummy_name, node->name);
     auto &symbol = this->symtab.get_symbol(node->name);
     symbol.type = str_to_val_type(node->type);
@@ -260,7 +259,7 @@ void InstructionsGenerator::visit(ASTNodeDeclVar *node) {
     if (node->expression) {
         node->expression->accept(this);
 
-        if (auto ref = dynamic_cast<ASTNodeReference *>(node->expression))
+        if (dynamic_cast<ASTNodeReference *>(node->expression))
             symbol.is_pointing_to_stack = true;
         else if (dynamic_cast<ASTNodeNew *>(node->expression))
             symbol.is_pointing_to_stack = false;
@@ -297,14 +296,19 @@ void InstructionsGenerator::visit(ASTNodeDeclFunc *node) {
         auto &decl_func_symbol = this->symtab.get_symbol(node->name);
         for (auto &parameter: node->parameters) {
             this->symtab.insert_symbol(parameter->name, VARIABLE, str_to_val_type(parameter->type), false);
+            this->symtab.get_symbol(parameter->name).is_pointer = parameter->is_pointer;
             decl_func_symbol.parameters.push_back(this->symtab.get_symbol(parameter->name));
             this->sizeof_params_stack.push_back(sizeof_val_type(str_to_val_type(parameter->type)));
         }
 
+        this->sizeof_return_type_stack.push_back(sizeof_val_type(str_to_val_type(node->return_type)));
         node->block->accept(this);
+        this->sizeof_return_type_stack.pop_back();
     } else {
         this->generate(PL0_JMP, 0, 0);
     }
+
+    this->symtab.remove_scope();
 
     auto &jump_over_func_instr = this->get_instruction(jump_over_func_instr_index);
     jump_over_func_instr.parameter = this->get_instruction_counter();
@@ -319,6 +323,7 @@ void InstructionsGenerator::visit(ASTNodeIf *node) {
     auto jmc_instruction_line = this->get_instruction_counter();
     this->generate(PL0_JMC, 0, 0);
     node->block->accept(this);
+    this->symtab.remove_scope();
 
     auto jmp_instruction_line = this->get_instruction_counter();
     auto &jmc_instruction = this->get_instruction(jmc_instruction_line);
@@ -331,6 +336,7 @@ void InstructionsGenerator::visit(ASTNodeIf *node) {
         this->symtab.insert_scope(new_base, 0, false);
 
         node->else_block->accept(this);
+        this->symtab.remove_scope();
     }
 
     auto post_if_instruction_line = this->get_instruction_counter();
@@ -399,10 +405,45 @@ void InstructionsGenerator::visit(ASTNodeWhile *node) {
             continue_jmp_instruction.parameter = condition_instruction_line;
         }
     }
+
+    this->symtab.remove_scope();
 }
 
-void InstructionsGenerator::visit(ASTNodeFor *node) { /* TODO: for is not implemented yet */
-    /* Empty */
+void InstructionsGenerator::visit(ASTNodeFor *node) {
+    node->block->count_breaks_and_continues();
+    node->break_number = node->block->break_number;
+    node->continue_number = node->block->continue_number;
+
+    auto current_scope = this->symtab.get_current_scope();
+    auto new_base = current_scope.get_address_base() + current_scope.get_address_offset();
+    this->symtab.insert_scope(new_base, 0, false);
+
+    int sizeof_init = 0;
+    if (auto decl_var = dynamic_cast<ASTNodeDeclVar *>(node->init)) {
+        sizeof_init = sizeof_val_type(str_to_val_type(decl_var->type));
+        this->generate(PL0_INT, 0, sizeof_init);
+        this->symtab.insert_symbol("__DUMMY_0__", VARIABLE, decl_var->type, false);
+        this->number_of_declared_variables.push_back(0);
+        node->init->accept(this);
+        this->number_of_declared_variables.pop_back();
+    }
+    else if (dynamic_cast<ASTNodeAssignExpression *>(node->init))
+        node->init->accept(this);
+
+    auto condition_instruction_line = this->get_instruction_counter();
+    node->condition->accept(this);
+    auto jmc_instruction_line = this->get_instruction_counter();
+    this->generate(PL0_JMC, 0, 0);
+    node->block->accept(this);
+    node->increment->accept(this);
+    this->generate(PL0_JMP, 0, condition_instruction_line);
+    auto &jmc_instruction = this->get_instruction(jmc_instruction_line);
+    jmc_instruction.parameter = this->get_instruction_counter();
+
+    if (sizeof_init)
+        this->generate(PL0_INT, 0, -sizeof_init);
+
+    this->symtab.remove_scope();
 }
 
 void InstructionsGenerator::visit(ASTNodeBreakContinue *node) {
@@ -418,7 +459,8 @@ void InstructionsGenerator::visit(ASTNodeReturn *node) {
     if (node->expression)
         node->expression->accept(this);
 
-    this->generate(PL0_STO, 0, -1); /* TODO: size of return value */
+    auto sizeof_return_type = this->sizeof_return_type_stack.back();
+    this->generate(PL0_STO, 0, -sizeof_return_type);
 
     this->generate(PL0_RET, 0, 0);
 }

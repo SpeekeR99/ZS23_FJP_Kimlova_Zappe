@@ -97,6 +97,7 @@ private:
     std::vector<uint32_t> break_stack;
     std::vector<uint32_t> continue_stack;
     std::vector<uint32_t> sizeof_params_stack;
+    std::vector<uint32_t> sizeof_return_type_stack;
 
     void generate(const std::string &instruction, int level, int parameter);
     void generate(InstructionIndex instruction, int level, int parameter);

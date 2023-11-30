@@ -271,6 +271,8 @@ public:
     ASTNodeExpression *condition;
     ASTNodeExpression *increment;
     ASTNodeBlock *block;
+    int break_number = 0;
+    int continue_number = 0;
 
     ASTNodeFor(ASTNodeStatement *init, ASTNodeExpression *condition, ASTNodeExpression *increment, ASTNodeBlock *block, int line) : init(init), condition(condition), increment(increment), block(block), line(line) {
         /* Empty */

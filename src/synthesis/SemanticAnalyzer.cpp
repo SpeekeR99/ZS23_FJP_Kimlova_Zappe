@@ -63,8 +63,6 @@ void SemanticAnalyzer::visit(ASTNodeBlock *node) {
             exit(1);
         }
     }
-
-    this->symtab.remove_scope();
 }
 
 void SemanticAnalyzer::visit(ASTNodeDeclVar *node) {
@@ -143,6 +141,8 @@ void SemanticAnalyzer::visit(ASTNodeDeclFunc *node) {
     }
     else
         this->declared_functions[node->name] = false;
+
+    this->symtab.remove_scope();
 }
 
 void SemanticAnalyzer::visit(ASTNodeIf *node) {
@@ -150,10 +150,12 @@ void SemanticAnalyzer::visit(ASTNodeIf *node) {
 
     node->condition->accept(this);
     node->block->accept(this);
+    this->symtab.remove_scope();
 
     if (node->else_block) {
         this->symtab.insert_scope(0, 0, false); /* No need to care about addressing here */
         node->else_block->accept(this);
+        this->symtab.remove_scope();
     }
 }
 
@@ -169,11 +171,25 @@ void SemanticAnalyzer::visit(ASTNodeWhile *node) {
         node->block->accept(this);
     }
 
+    this->symtab.remove_scope();
     this->current_loop_level--;
 }
 
-void SemanticAnalyzer::visit(ASTNodeFor *node) { /* TODO: for loop is not implemented yet */
+void SemanticAnalyzer::visit(ASTNodeFor *node) {
     this->current_loop_level++;
+    this->symtab.insert_scope(0, 0, false); /* No need to care about addressing here */
+
+    if (!dynamic_cast<ASTNodeDeclVar *>(node->init) && !dynamic_cast<ASTNodeAssignExpression *>(node->init)) {
+        std::cerr << "Semantic error: invalid for loop initialization, error on line " << node->line << std::endl;
+        exit(1);
+    }
+
+    node->init->accept(this);
+    node->condition->accept(this);
+    node->block->accept(this);
+    node->increment->accept(this);
+
+    this->symtab.remove_scope();
     this->current_loop_level--;
 }
 
