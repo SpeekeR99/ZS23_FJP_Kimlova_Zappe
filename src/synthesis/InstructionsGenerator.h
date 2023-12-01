@@ -107,6 +107,9 @@ private:
     void init_builtin_functions();
     void gen_print_num();
     void gen_read_num();
+    void gen_print_string();
+    void gen_read_string();
+    void gen_strcmp();
 
     [[nodiscard]] Instruction &get_instruction(std::uint32_t index);
 
@@ -133,6 +136,7 @@ public:
     void visit(ASTNodeIdentifier *node) override;
     void visit(ASTNodeIntLiteral *node) override;
     void visit(ASTNodeBoolLiteral *node) override;
+    void visit(ASTNodeStringLiteral *node) override;
     void visit(ASTNodeAssignExpression *node) override;
     void visit(ASTNodeTernaryOperator *node) override;
     void visit(ASTNodeBinaryOperator *node) override;

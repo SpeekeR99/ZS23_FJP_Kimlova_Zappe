@@ -164,6 +164,232 @@ void InstructionsGenerator::gen_read_num() {
     this->symtab.remove_scope();
 }
 
+void InstructionsGenerator::gen_print_string() {
+    this->symtab.insert_scope(0, ACTIVATION_RECORD_SIZE, true);
+
+    this->generate(PL0_INT, 0, ACTIVATION_RECORD_SIZE + 3);
+    this->symtab.insert_symbol("__TEMP_PRINT__", VARIABLE, INTEGER, false);
+    this->generate(PL0_LOD, 0, -1); /* Load first and only argument */
+    auto temp_print_address = this->symtab.get_symbol("__TEMP_PRINT__").address;
+    this->generate(PL0_STO, 0, temp_print_address); /* Store the argument in the first temporary variable */
+
+    this->symtab.insert_symbol("__TEMP_STRING_SIZE__", VARIABLE, INTEGER, false);
+    auto temp_string_size_address = this->symtab.get_symbol("__TEMP_STRING_SIZE__").address;
+    this->generate(PL0_LIT, 0, -1);
+    this->generate(PL0_LOD, 0, temp_print_address);
+    this->generate(PL0_OPR, 0, PL0_ADD);
+    this->generate(PL0_LDA, 0, 0);
+    this->generate(PL0_STO, 0, temp_string_size_address);
+
+    this->symtab.insert_symbol("__TEMP_COUNTER__", VARIABLE, INTEGER, false);
+    auto temp_counter_address = this->symtab.get_symbol("__TEMP_COUNTER__").address;
+    this->generate(PL0_LIT, 0, 0);
+    this->generate(PL0_STO, 0, temp_counter_address);
+
+    auto jump_to_start = this->get_instruction_counter();
+    this->generate(PL0_LOD, 0, temp_print_address); /* Load the string */
+    this->generate(PL0_LOD, 0, temp_counter_address); /* Load the counter */
+    this->generate(PL0_OPR, 0, PL0_ADD); /* Add the counter to the string address */
+    this->generate(PL0_LDA, 0, 0); /* Load the character */
+    this->generate(PL0_WRI, 0, 0); /* Write the character */
+    this->generate(PL0_LOD, 0, temp_counter_address); /* Load the counter */
+    this->generate(PL0_LIT, 0, 1);
+    this->generate(PL0_OPR, 0, PL0_ADD); /* Increment the counter */
+    this->generate(PL0_STO, 0, temp_counter_address); /* Store the counter */
+    this->generate(PL0_LOD, 0, temp_counter_address); /* Load the counter */
+    this->generate(PL0_LOD, 0, temp_string_size_address); /* Load the string size */
+    this->generate(PL0_OPR, 0, PL0_EQ); /* Check if the counter is equal to the string size */
+    this->generate(PL0_JMC, 0, jump_to_start); /* If not equal, jump to the start */
+
+    this->generate(PL0_RET, 0, 0);
+
+    this->symtab.remove_scope();
+}
+
+void InstructionsGenerator::gen_read_string() {
+    this->symtab.insert_scope(0, ACTIVATION_RECORD_SIZE, true);
+    this->generate(PL0_INT, 0, ACTIVATION_RECORD_SIZE + 2);
+
+    this->symtab.insert_symbol("__TEMP_STRING_SIZE__", VARIABLE, INTEGER, false);
+    auto temp_string_size_address = this->symtab.get_symbol("__TEMP_STRING_SIZE__").address;
+    this->generate(PL0_LIT, 0, 0);
+    this->generate(PL0_STO, 0, temp_string_size_address);
+    this->symtab.insert_symbol("__TEMP_STRING_COUNTER__", VARIABLE, INTEGER, false);
+    auto temp_string_counter_address = this->symtab.get_symbol("__TEMP_STRING_COUNTER__").address;
+
+    auto rea_instruction_line = this->get_instruction_counter();
+    this->generate(PL0_INT, 0, 1);
+    this->generate(PL0_REA, 0, 0);
+    this->generate(PL0_LIT, 0, 0);
+    this->generate(PL0_LOD, 0, temp_string_size_address);
+    this->generate(PL0_LIT, 0, 5);
+    this->generate(PL0_OPR, 0, PL0_ADD);
+    this->generate(PL0_PST, 0, 0);
+
+    this->generate(PL0_LIT, 0, 0);
+    this->generate(PL0_LOD, 0, temp_string_size_address);
+    this->generate(PL0_LIT, 0, 5);
+    this->generate(PL0_OPR, 0, PL0_ADD);
+    this->generate(PL0_PLD, 0, 0);
+    this->generate(PL0_LIT, 0, 10);
+    this->generate(PL0_OPR, 0, PL0_NEQ);
+    auto jmc_instruction_line = this->get_instruction_counter();
+    this->generate(PL0_JMC, 0, 0);
+
+    this->generate(PL0_LOD, 0, temp_string_size_address);
+    this->generate(PL0_LIT, 0, 1);
+    this->generate(PL0_OPR, 0, PL0_ADD);
+    this->generate(PL0_STO, 0, temp_string_size_address);
+
+    this->generate(PL0_JMP, 0, rea_instruction_line);
+    auto &jmc_instruction = this->get_instruction(jmc_instruction_line);
+    jmc_instruction.parameter = this->get_instruction_counter();
+
+    this->generate(PL0_INT, 0, 1);
+    this->generate(PL0_LOD, 0, temp_string_size_address);
+    this->generate(PL0_NEW, 0, 0);
+    this->generate(PL0_LIT, 0, 0);
+    this->generate(PL0_LOD, 0, temp_string_size_address);
+    this->generate(PL0_LIT, 0, 6);
+    this->generate(PL0_OPR, 0, PL0_ADD);
+    this->generate(PL0_PST, 0, 0);
+
+    /* copy the string to the heap */
+    this->generate(PL0_LIT, 0, 0);
+    this->generate(PL0_LOD, 0, temp_string_size_address);
+    this->generate(PL0_LIT, 0, 6);
+    this->generate(PL0_OPR, 0, PL0_ADD);
+    this->generate(PL0_PLD, 0, 0);
+    this->generate(PL0_LIT, 0, -1);
+    this->generate(PL0_OPR, 0, PL0_ADD);
+    this->generate(PL0_LOD, 0, temp_string_size_address);
+    this->generate(PL0_STA, 0, 0);
+
+    this->generate(PL0_LOD, 0, temp_string_size_address);
+    this->generate(PL0_STO, 0, temp_string_counter_address);
+
+    /* copy untill the the temp string size address is 0 */
+    auto jump_to_start = this->get_instruction_counter();
+    this->generate(PL0_LIT, 0, 0);
+    this->generate(PL0_LOD, 0, temp_string_size_address);
+    this->generate(PL0_LIT, 0, 6);
+    this->generate(PL0_OPR, 0, PL0_ADD);
+    this->generate(PL0_PLD, 0, 0);
+    this->generate(PL0_LOD, 0, temp_string_counter_address);
+    this->generate(PL0_LIT, 0, -1);
+    this->generate(PL0_OPR, 0, PL0_ADD);
+    this->generate(PL0_OPR, 0, PL0_ADD);
+    this->generate(PL0_LIT, 0, 0);
+    this->generate(PL0_LOD, 0, temp_string_counter_address);
+    this->generate(PL0_LIT, 0, 4);
+    this->generate(PL0_OPR, 0, PL0_ADD);
+    this->generate(PL0_PLD, 0, 0);
+    this->generate(PL0_STA, 0, 0);
+
+    this->generate(PL0_LOD, 0, temp_string_counter_address);
+    this->generate(PL0_LIT, 0, -1);
+    this->generate(PL0_OPR, 0, PL0_ADD);
+    this->generate(PL0_STO, 0, temp_string_counter_address);
+
+    this->generate(PL0_LOD, 0, temp_string_counter_address);
+    this->generate(PL0_LIT, 0, 0);
+    this->generate(PL0_OPR, 0, PL0_EQ);
+    this->generate(PL0_JMC, 0, jump_to_start);
+
+    this->generate(PL0_LIT, 0, 0);
+    this->generate(PL0_LOD, 0, temp_string_size_address);
+    this->generate(PL0_LIT, 0, 6);
+    this->generate(PL0_OPR, 0, PL0_ADD);
+    this->generate(PL0_PLD, 0, 0);
+    this->generate(PL0_STO, 0, -1);
+    this->generate(PL0_RET, 0, 0);
+
+    this->symtab.remove_scope();
+}
+
+void InstructionsGenerator::gen_strcmp() {
+    this->symtab.insert_scope(0, ACTIVATION_RECORD_SIZE, true);
+    this->generate(PL0_INT, 0, ACTIVATION_RECORD_SIZE + 5);
+
+    this->symtab.insert_symbol("__TEMP_STR_1__", VARIABLE, INTEGER, false);
+    this->symtab.insert_symbol("__TEMP_STR_2__", VARIABLE, INTEGER, false);
+    this->symtab.insert_symbol("__TEMP_STR_SIZE__", VARIABLE, INTEGER, false);
+    this->symtab.insert_symbol("__TEMP_COUNTER__", VARIABLE, INTEGER, false);
+    this->symtab.insert_symbol("__TEMP_RESULT__", VARIABLE, INTEGER, false);
+
+    auto temp_str_1_address = this->symtab.get_symbol("__TEMP_STR_1__").address;
+    auto temp_str_2_address = this->symtab.get_symbol("__TEMP_STR_2__").address;
+    auto temp_str_size_address = this->symtab.get_symbol("__TEMP_STR_SIZE__").address;
+    auto temp_counter_address = this->symtab.get_symbol("__TEMP_COUNTER__").address;
+    auto temp_result_address = this->symtab.get_symbol("__TEMP_RESULT__").address;
+
+    this->generate(PL0_LOD, 0, -2);
+    this->generate(PL0_STO, 0, temp_str_1_address);
+    this->generate(PL0_LOD, 0, -3);
+    this->generate(PL0_STO, 0, temp_str_2_address);
+
+    /* look to heap for the -1 index and compare sizes */
+    this->generate(PL0_LOD, 0, temp_str_1_address);
+    this->generate(PL0_LIT, 0, -1);
+    this->generate(PL0_OPR, 0, PL0_ADD);
+    this->generate(PL0_LDA, 0, 0);
+    this->generate(PL0_LOD, 0, temp_str_2_address);
+    this->generate(PL0_LIT, 0, -1);
+    this->generate(PL0_OPR, 0, PL0_ADD);
+    this->generate(PL0_LDA, 0, 0);
+    this->generate(PL0_STO, 0, temp_str_size_address);
+    this->generate(PL0_LOD, 0, temp_str_size_address);
+    this->generate(PL0_OPR, 0, PL0_EQ);
+    this->generate(PL0_STO, 0, temp_result_address);
+    this->generate(PL0_LOD, 0, temp_result_address);
+    auto jmc_instruction_line = this->get_instruction_counter();
+    this->generate(PL0_JMC, 0, 0);
+
+    /* compare the strings byte by byte */
+    auto byte_by_byte_start = this->get_instruction_counter();
+    this->generate(PL0_LOD, 0, temp_str_size_address);
+    this->generate(PL0_LOD, 0, temp_counter_address);
+    this->generate(PL0_OPR, 0, PL0_NEQ);
+    this->generate(PL0_LIT, 0, 0);
+    this->generate(PL0_OPR, 0, PL0_EQ);
+    this->generate(PL0_STO, 0, temp_result_address);
+    this->generate(PL0_LOD, 0, temp_result_address);
+    this->generate(PL0_LIT, 0, 0);
+    this->generate(PL0_OPR, 0, PL0_EQ);
+    auto jmc_equal_instruction_line = this->get_instruction_counter();
+    this->generate(PL0_JMC, 0, 0);
+    this->generate(PL0_LOD, 0, temp_str_1_address);
+    this->generate(PL0_LOD, 0, temp_counter_address);
+    this->generate(PL0_OPR, 0, PL0_ADD);
+    this->generate(PL0_LDA, 0, 0);
+    this->generate(PL0_LOD, 0, temp_str_2_address);
+    this->generate(PL0_LOD, 0, temp_counter_address);
+    this->generate(PL0_OPR, 0, PL0_ADD);
+    this->generate(PL0_LDA, 0, 0);
+    this->generate(PL0_OPR, 0, PL0_NEQ);
+    this->generate(PL0_LIT, 0, 0);
+    this->generate(PL0_OPR, 0, PL0_EQ);
+    this->generate(PL0_STO, 0, temp_result_address);
+    this->generate(PL0_LOD, 0, temp_counter_address);
+    this->generate(PL0_LIT, 0, 1);
+    this->generate(PL0_OPR, 0, PL0_ADD);
+    this->generate(PL0_STO, 0, temp_counter_address);
+    this->generate(PL0_LOD, 0, temp_result_address);
+    this->generate(PL0_LIT, 0, 0);
+    this->generate(PL0_OPR, 0, PL0_EQ);
+    this->generate(PL0_JMC, 0, byte_by_byte_start);
+
+    auto &jmc_instruction = this->get_instruction(jmc_instruction_line);
+    jmc_instruction.parameter = this->get_instruction_counter();
+    auto &jmc_equal_instruction = this->get_instruction(jmc_equal_instruction_line);
+    jmc_equal_instruction.parameter = this->get_instruction_counter();
+    this->generate(PL0_LOD, 0, temp_result_address);
+    this->generate(PL0_STO, 0, -1);
+    this->generate(PL0_RET, 0, 0);
+
+    this->symtab.remove_scope();
+}
+
 void InstructionsGenerator::init_builtin_functions() {
     this->symtab.init_builtin_functions();
 
@@ -182,6 +408,27 @@ void InstructionsGenerator::init_builtin_functions() {
         this->gen_read_num();
         auto &read_num_symbol = this->symtab.get_symbol("read_num");
         read_num_symbol.address = read_num_address;
+    }
+
+    if (std::find(this->used_builtin_functions.begin(), this->used_builtin_functions.end(), "print_str") != this->used_builtin_functions.end()) {
+        auto print_string_address = this->get_instruction_counter();
+        this->gen_print_string();
+        auto &print_string_symbol = this->symtab.get_symbol("print_str");
+        print_string_symbol.address = print_string_address;
+    }
+
+    if (std::find(this->used_builtin_functions.begin(), this->used_builtin_functions.end(), "read_str") != this->used_builtin_functions.end()) {
+        auto read_string_address = this->get_instruction_counter();
+        this->gen_read_string();
+        auto &read_string_symbol = this->symtab.get_symbol("read_str");
+        read_string_symbol.address = read_string_address;
+    }
+
+    if (std::find(this->used_builtin_functions.begin(), this->used_builtin_functions.end(), "strcmp") != this->used_builtin_functions.end()) {
+        auto strcmp_address = this->get_instruction_counter();
+        this->gen_strcmp();
+        auto &strcmp_symbol = this->symtab.get_symbol("strcmp");
+        strcmp_symbol.address = strcmp_address;
     }
 }
 
@@ -554,6 +801,32 @@ void InstructionsGenerator::visit(ASTNodeBoolLiteral *node) {
     this->generate(PL0_LIT, 0, value);
 }
 
+void InstructionsGenerator::visit(ASTNodeStringLiteral *node) {
+    this->symtab.insert_symbol("__TEMP_STRING__", VARIABLE, STRING, false);
+    auto string_literal_address = this->symtab.get_symbol("__TEMP_STRING__").address;
+    this->generate(PL0_INT, 0, 1);
+    this->generate(PL0_LIT, 0, node->value.length());
+    this->generate(PL0_NEW, 0, 0);
+    this->generate(PL0_STO, 0, string_literal_address);
+
+    this->generate(PL0_LOD, 0, string_literal_address);
+    this->generate(PL0_LIT, 0, -1);
+    this->generate(PL0_OPR, 0, PL0_ADD);
+    this->generate(PL0_LIT, 0, node->value.length());
+    this->generate(PL0_STA, 0, 0);
+
+    for (int i = 0; i < node->value.length(); i++) {
+        this->generate(PL0_LOD, 0, string_literal_address);
+        this->generate(PL0_LIT, 0, i);
+        this->generate(PL0_OPR, 0, PL0_ADD);
+        this->generate(PL0_LIT, 0, node->value[i]);
+        this->generate(PL0_STA, 0, 0);
+    }
+
+    this->generate(PL0_LOD, 0, string_literal_address);
+    this->symtab.remove_symbol("__TEMP_STRING__");
+}
+
 void InstructionsGenerator::visit(ASTNodeAssignExpression *node) {
     if (node->lvalue) {
         if (auto dereference = dynamic_cast<ASTNodeDereference *>(node->lvalue)) {
@@ -658,10 +931,31 @@ void InstructionsGenerator::visit(ASTNodeCallFunc *node) {
 }
 
 void InstructionsGenerator::visit(ASTNodeNew *node) {
+    this->symtab.insert_symbol("__TEMP_NEW_SIZE__", VARIABLE, str_to_val_type(node->type), false);
+    auto temp_new_size_address = this->symtab.get_symbol("__TEMP_NEW_SIZE__").address;
+
+    this->generate(PL0_INT, 0, 2);
     node->expression->accept(this);
     this->generate(PL0_LIT, 0, sizeof_val_type(str_to_val_type(node->type)));
     this->generate(PL0_OPR, 0, PL0_MUL);
+    this->generate(PL0_STO, 0, temp_new_size_address);
+    this->generate(PL0_LOD, 0, temp_new_size_address);
     this->generate(PL0_NEW, 0, 0);
+
+    this->symtab.insert_symbol("__TEMP_NEW__", VARIABLE, str_to_val_type(node->type), false);
+    auto temp_new_address = this->symtab.get_symbol("__TEMP_NEW__").address;
+
+    this->generate(PL0_STO, 0, temp_new_address);
+    this->generate(PL0_LOD, 0, temp_new_address);
+    this->generate(PL0_LIT, 0, -1);
+    this->generate(PL0_OPR, 0, PL0_ADD);
+    this->generate(PL0_LOD, 0, temp_new_size_address);
+    this->generate(PL0_STA, 0, 0);
+
+    this->generate(PL0_LOD, 0, temp_new_address);
+
+    this->symtab.remove_symbol("__TEMP_NEW_SIZE__");
+    this->symtab.remove_symbol("__TEMP_NEW__");
 }
 
 void InstructionsGenerator::visit(ASTNodeDelete *node) {

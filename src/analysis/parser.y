@@ -30,7 +30,7 @@
 }
 %define parse.error verbose
 
-%nonassoc TYPE ID LABEL INT_LITERAL BOOL_LITERAL CONSTANT BEGIN_BLOCK END_BLOCK
+%nonassoc TYPE ID LABEL INT_LITERAL BOOL_LITERAL STRING_LITERAL CONSTANT BEGIN_BLOCK END_BLOCK
 
 %nonassoc IF ELSE FOR WHILE DO REPEAT UNTIL BREAK CONTINUE RETURN NEW DELETE GOTO
 %left AND OR NOT
@@ -45,7 +45,7 @@
 %left MUL DIV MOD
 %left U_MINUS
 
-%type <string> ID TYPE INT_LITERAL BOOL_LITERAL ADD SUB MUL DIV MOD AND OR NOT EQ NEQ LESS LESSEQ GRT GRTEQ ASSIGN_OP
+%type <string> ID TYPE INT_LITERAL BOOL_LITERAL STRING_LITERAL ADD SUB MUL DIV MOD AND OR NOT EQ NEQ LESS LESSEQ GRT GRTEQ ASSIGN_OP
 %type <expr> expr arithm_expr logic_expr compare_expr cast_expr call_func_expr assign_expr ternary_expr memory_expr
 %type <stmt> stmt decl_var_stmt decl_func_stmt if_stmt loop_stmt while_stmt do_while_stmt until_do_stmt repeat_until_stmt for_stmt jump_stmt break_stmt continue_stmt return_stmt goto_stmt
 %type <block> program stmts block else_stmt
@@ -358,6 +358,11 @@ expr:
     }
     | BOOL_LITERAL {
         $$ = new ASTNodeBoolLiteral(*$1 == "true", yylineno);
+        delete $1;
+    }
+    | STRING_LITERAL {
+        auto str = $1->substr(1, $1->length() - 2);
+        $$ = new ASTNodeStringLiteral(str, yylineno);
         delete $1;
     }
     | L_BRACKET expr R_BRACKET {

@@ -2,7 +2,10 @@
 
 std::vector<std::string> SymbolTable::builtin_functions = {
         "print_num",
-        "read_num"
+        "read_num",
+        "print_str",
+        "read_str",
+        "strcmp"
 };
 
 ValueType str_to_val_type(const std::string &str) {
@@ -12,6 +15,8 @@ ValueType str_to_val_type(const std::string &str) {
         return INTEGER;
     else if (str == "bool")
         return BOOLEAN;
+    else if (str == "string")
+        return STRING;
     else {
         std::cout << "Invalid value type: " << str << std::endl;
         throw std::runtime_error("Invalid value type!");
@@ -25,6 +30,8 @@ int sizeof_val_type(ValueType type) {
         return INTEGER_SIZE;
     else if (type == BOOLEAN)
         return BOOLEAN_SIZE;
+    else if (type == STRING)
+        return STRING_SIZE;
     else {
         std::cout << "Invalid value type: " << type << std::endl;
         throw std::runtime_error("Invalid value type!");
@@ -111,6 +118,17 @@ void SymbolTable::init_builtin_functions() {
     auto print_param = SymbolTableRecord{"__print_num_param__", VARIABLE, str_to_val_type("int"), false};
     print_num.parameters.emplace_back(print_param);
     this->insert_symbol("read_num", FUNCTION, "int", false, 0);
+    this->insert_symbol("print_str", FUNCTION, "void", false, 0);
+    auto &print_str = this->get_symbol("print_str");
+    print_param = SymbolTableRecord{"__print_str_param__", VARIABLE, str_to_val_type("string"), false};
+    print_str.parameters.emplace_back(print_param);
+    this->insert_symbol("read_str", FUNCTION, "string", false, 0);
+    this->insert_symbol("strcmp", FUNCTION, "int", false, 0);
+    auto &strcmp = this->get_symbol("strcmp");
+    print_param = SymbolTableRecord{"__strcmp_param1__", VARIABLE, str_to_val_type("string"), false};
+    strcmp.parameters.emplace_back(print_param);
+    print_param = SymbolTableRecord{"__strcmp_param2__", VARIABLE, str_to_val_type("string"), false};
+    strcmp.parameters.emplace_back(print_param);
 }
 
 SymbolTable::~SymbolTable() = default;

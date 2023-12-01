@@ -342,6 +342,10 @@ void SemanticAnalyzer::visit(ASTNodeBoolLiteral *node) {
     /* Empty */
 }
 
+void SemanticAnalyzer::visit(ASTNodeStringLiteral *node) {
+
+}
+
 void SemanticAnalyzer::visit(ASTNodeAssignExpression *node) {
     auto &symbol = this->symtab.get_symbol(node->name);
 

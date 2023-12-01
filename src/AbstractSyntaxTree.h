@@ -18,6 +18,7 @@ class ASTNodeExpressionStatement;
 class ASTNodeIdentifier;
 class ASTNodeIntLiteral;
 class ASTNodeBoolLiteral;
+class ASTNodeStringLiteral;
 class ASTNodeAssignExpression;
 class ASTNodeTernaryOperator;
 class ASTNodeBinaryOperator;
@@ -46,6 +47,7 @@ public:
     virtual void visit(ASTNodeIdentifier *node) = 0;
     virtual void visit(ASTNodeIntLiteral *node) = 0;
     virtual void visit(ASTNodeBoolLiteral *node) = 0;
+    virtual void visit(ASTNodeStringLiteral *node) = 0;
     virtual void visit(ASTNodeAssignExpression *node) = 0;
     virtual void visit(ASTNodeTernaryOperator *node) = 0;
     virtual void visit(ASTNodeBinaryOperator *node) = 0;
@@ -336,6 +338,20 @@ public:
     bool value;
 
     explicit ASTNodeBoolLiteral(bool value, int line) : value(value), line(line) {
+        /* Empty */
+    }
+
+    void accept(ASTVisitor *visitor) override {
+        visitor->visit(this);
+    }
+};
+
+class ASTNodeStringLiteral : public ASTNodeExpression {
+public:
+    int line;
+    std::string value;
+
+    explicit ASTNodeStringLiteral(const std::string &value, int line) : value(value), line(line) {
         /* Empty */
     }
 

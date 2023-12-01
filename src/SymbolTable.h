@@ -11,13 +11,15 @@ const std::uint32_t ACTIVATION_RECORD_SIZE = 3;
 enum ValueType {
     VOID,
     INTEGER,
-    BOOLEAN
+    BOOLEAN,
+    STRING
 };
 
 enum ValueTypeSize {
     VOID_SIZE = 0,
     INTEGER_SIZE = 1,
-    BOOLEAN_SIZE = 1
+    BOOLEAN_SIZE = 1,
+    STRING_SIZE = 1
 };
 
 ValueType str_to_val_type(const std::string &str);
