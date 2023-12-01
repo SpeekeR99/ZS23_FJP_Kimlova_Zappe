@@ -422,7 +422,7 @@ public:
 
     bool contains_reference();
     std::string find_dereference();
-    bool is_pointer_arithmetic();
+    bool is_pointer_arithmetic = false;
 
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);

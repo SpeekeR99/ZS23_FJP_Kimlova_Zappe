@@ -1023,9 +1023,9 @@ void InstructionsGenerator::visit(ASTNodeTernaryOperator *node) {
 }
 
 void InstructionsGenerator::visit(ASTNodeBinaryOperator *node) {
-    if (node->is_pointer_arithmetic()) {
-        if (auto left_ref = dynamic_cast<ASTNodeReference *>(node->left)) {
-            auto &symbol = this->symtab.get_symbol(left_ref->identifier);
+    if (node->is_pointer_arithmetic) {
+        if (auto left_id = dynamic_cast<ASTNodeIdentifier *>(node->left)) {
+            auto &symbol = this->symtab.get_symbol(left_id->name);
             node->left->accept(this);
             node->right->accept(this);
             this->generate(PL0_LIT, 0, sizeof_val_type(symbol.type));
@@ -1033,15 +1033,16 @@ void InstructionsGenerator::visit(ASTNodeBinaryOperator *node) {
             this->generate(PL0_OPR, 0, OperatorsTable.find(node->op)->second);
             return;
         }
-        else if (auto right_ref = dynamic_cast<ASTNodeReference *>(node->right)) {
-            auto &symbol = this->symtab.get_symbol(right_ref->identifier);
-            node->left->accept(this);
+        else if (auto right_id = dynamic_cast<ASTNodeIdentifier *>(node->right)) {
+            auto &symbol = this->symtab.get_symbol(right_id->name);
             node->right->accept(this);
+            node->left->accept(this);
             this->generate(PL0_LIT, 0, sizeof_val_type(symbol.type));
             this->generate(PL0_OPR, 0, PL0_MUL);
             this->generate(PL0_OPR, 0, OperatorsTable.find(node->op)->second);
             return;
         }
+
         node->left->accept(this);
         node->right->accept(this);
         this->generate(PL0_OPR, 0, OperatorsTable.find(node->op)->second);
@@ -1124,6 +1125,8 @@ void InstructionsGenerator::visit(ASTNodeDelete *node) {
 }
 
 void InstructionsGenerator::visit(ASTNodeDereference *node) {
+    if (auto binary_op = dynamic_cast<ASTNodeBinaryOperator *>(node->expression))
+        binary_op->is_pointer_arithmetic = true;
     node->expression->accept(this);
     if (!node->is_lvalue && !node->is_pointing_to_stack)
         this->generate(PL0_LDA, 0, 0);

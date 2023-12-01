@@ -83,16 +83,6 @@ std::string ASTNodeBinaryOperator::find_dereference() {
     return "";
 }
 
-bool ASTNodeBinaryOperator::is_pointer_arithmetic() {
-    if (!this->find_dereference().empty())
-        return true;
-    else if (auto *left_binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(this->left))
-        return left_binary_operator->is_pointer_arithmetic();
-    else if (auto *right_binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(this->right))
-        return right_binary_operator->is_pointer_arithmetic();
-    return false;
-}
-
 void ASTNodeDereference::what_do_i_dereference() {
     if (auto *id = dynamic_cast<ASTNodeIdentifier *>(this->expression)) {
         this->identifier = id->name;

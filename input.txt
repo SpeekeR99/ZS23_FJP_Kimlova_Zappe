@@ -1,11 +1,6 @@
 int main() {
-    string a = "Hello ";
-    string b = "World\n";
-    string c = strcat(a, b);
-
-    print_str(c);
-    int len = strlen(c);
-    print_num(len);
+    int ^a = new(int, 5);
+    ^(a + 2) = 20;
 
     return 0;
 }
