@@ -110,6 +110,8 @@ private:
     void gen_print_string();
     void gen_read_string();
     void gen_strcmp();
+    void gen_strcat();
+    void gen_strlen();
 
     [[nodiscard]] Instruction &get_instruction(std::uint32_t index);
 

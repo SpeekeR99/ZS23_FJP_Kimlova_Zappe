@@ -1,4 +1,6 @@
 %{
+    #include <iostream>
+    #include <regex>
     #include "../src/AbstractSyntaxTree.h"
 
     extern int yylineno;
@@ -362,6 +364,7 @@ expr:
     }
     | STRING_LITERAL {
         auto str = $1->substr(1, $1->length() - 2);
+        str = std::regex_replace(str, std::regex("\\\\n"), "\n");
         $$ = new ASTNodeStringLiteral(str, yylineno);
         delete $1;
     }

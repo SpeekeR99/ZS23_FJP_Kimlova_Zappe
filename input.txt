@@ -1,6 +1,11 @@
 int main() {
-    int i = sizeof(int);
-    int b = sizeof(void);
+    string a = "Hello ";
+    string b = "World\n";
+    string c = strcat(a, b);
+
+    print_str(c);
+    int len = strlen(c);
+    print_num(len);
 
     return 0;
 }

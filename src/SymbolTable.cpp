@@ -5,7 +5,9 @@ std::vector<std::string> SymbolTable::builtin_functions = {
         "read_num",
         "print_str",
         "read_str",
-        "strcmp"
+        "strcmp",
+        "strcat",
+        "strlen",
 };
 
 ValueType str_to_val_type(const std::string &str) {
@@ -117,18 +119,34 @@ void SymbolTable::init_builtin_functions() {
     auto &print_num = this->get_symbol("print_num");
     auto print_param = SymbolTableRecord{"__print_num_param__", VARIABLE, str_to_val_type("int"), false};
     print_num.parameters.emplace_back(print_param);
+
     this->insert_symbol("read_num", FUNCTION, "int", false, 0);
+
     this->insert_symbol("print_str", FUNCTION, "void", false, 0);
     auto &print_str = this->get_symbol("print_str");
     print_param = SymbolTableRecord{"__print_str_param__", VARIABLE, str_to_val_type("string"), false};
     print_str.parameters.emplace_back(print_param);
+
     this->insert_symbol("read_str", FUNCTION, "string", false, 0);
+
     this->insert_symbol("strcmp", FUNCTION, "int", false, 0);
     auto &strcmp = this->get_symbol("strcmp");
     print_param = SymbolTableRecord{"__strcmp_param1__", VARIABLE, str_to_val_type("string"), false};
     strcmp.parameters.emplace_back(print_param);
     print_param = SymbolTableRecord{"__strcmp_param2__", VARIABLE, str_to_val_type("string"), false};
     strcmp.parameters.emplace_back(print_param);
+
+    this->insert_symbol("strcat", FUNCTION, "string", false, 0);
+    auto &strcat = this->get_symbol("strcat");
+    print_param = SymbolTableRecord{"__strcat_param1__", VARIABLE, str_to_val_type("string"), false};
+    strcat.parameters.emplace_back(print_param);
+    print_param = SymbolTableRecord{"__strcat_param2__", VARIABLE, str_to_val_type("string"), false};
+    strcat.parameters.emplace_back(print_param);
+
+    this->insert_symbol("strlen", FUNCTION, "int", false, 0);
+    auto &strlen = this->get_symbol("strlen");
+    print_param = SymbolTableRecord{"__strlen_param__", VARIABLE, str_to_val_type("string"), false};
+    strlen.parameters.emplace_back(print_param);
 }
 
 SymbolTable::~SymbolTable() = default;
