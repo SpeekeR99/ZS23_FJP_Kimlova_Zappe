@@ -888,6 +888,31 @@ void InstructionsGenerator::visit(ASTNodeTernaryOperator *node) {
 }
 
 void InstructionsGenerator::visit(ASTNodeBinaryOperator *node) {
+    if (node->is_pointer_arithmetic()) {
+        if (auto left_ref = dynamic_cast<ASTNodeReference *>(node->left)) {
+            auto &symbol = this->symtab.get_symbol(left_ref->identifier);
+            node->left->accept(this);
+            node->right->accept(this);
+            this->generate(PL0_LIT, 0, sizeof_val_type(symbol.type));
+            this->generate(PL0_OPR, 0, PL0_MUL);
+            this->generate(PL0_OPR, 0, OperatorsTable.find(node->op)->second);
+            return;
+        }
+        else if (auto right_ref = dynamic_cast<ASTNodeReference *>(node->right)) {
+            auto &symbol = this->symtab.get_symbol(right_ref->identifier);
+            node->left->accept(this);
+            node->right->accept(this);
+            this->generate(PL0_LIT, 0, sizeof_val_type(symbol.type));
+            this->generate(PL0_OPR, 0, PL0_MUL);
+            this->generate(PL0_OPR, 0, OperatorsTable.find(node->op)->second);
+            return;
+        }
+        node->left->accept(this);
+        node->right->accept(this);
+        this->generate(PL0_OPR, 0, OperatorsTable.find(node->op)->second);
+        return;
+    }
+
     node->left->accept(this);
     node->right->accept(this);
 
@@ -974,4 +999,8 @@ void InstructionsGenerator::visit(ASTNodeDereference *node) {
 void InstructionsGenerator::visit(ASTNodeReference *node) {
     auto address = this->symtab.get_symbol(node->identifier).address;
     this->generate(PL0_LIT, 0, address);
+}
+
+void InstructionsGenerator::visit(ASTNodeSizeof *node) {
+    this->generate(PL0_LIT, 0, sizeof_val_type(str_to_val_type(node->type)));
 }

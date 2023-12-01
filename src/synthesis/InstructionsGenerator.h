@@ -147,4 +147,5 @@ public:
     void visit(ASTNodeDelete *node) override;
     void visit(ASTNodeDereference *node) override;
     void visit(ASTNodeReference *node) override;
+    void visit(ASTNodeSizeof *node) override;
 };

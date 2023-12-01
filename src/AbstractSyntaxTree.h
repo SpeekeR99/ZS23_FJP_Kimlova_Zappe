@@ -29,6 +29,7 @@ class ASTNodeNew;
 class ASTNodeDelete;
 class ASTNodeDereference;
 class ASTNodeReference;
+class ASTNodeSizeof;
 
 class ASTVisitor {
 public:
@@ -58,6 +59,7 @@ public:
     virtual void visit(ASTNodeDelete *node) = 0;
     virtual void visit(ASTNodeDereference *node) = 0;
     virtual void visit(ASTNodeReference *node) = 0;
+    virtual void visit(ASTNodeSizeof *node) = 0;
 };
 
 class ASTNode {
@@ -420,6 +422,7 @@ public:
 
     bool contains_reference();
     std::string find_dereference();
+    bool is_pointer_arithmetic();
 
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);
@@ -555,6 +558,22 @@ public:
     }
 
     ~ASTNodeReference() override = default;
+
+    void accept(ASTVisitor *visitor) override {
+        visitor->visit(this);
+    }
+};
+
+class ASTNodeSizeof : public ASTNodeExpression {
+public:
+    int line;
+    std::string type;
+
+    explicit ASTNodeSizeof(const std::string &type, int line) : type(type), line(line) {
+        /* Empty */
+    }
+
+    ~ASTNodeSizeof() override = default;
 
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);

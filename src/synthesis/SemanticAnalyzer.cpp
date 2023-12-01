@@ -486,3 +486,7 @@ void SemanticAnalyzer::visit(ASTNodeReference *node) {
         exit(1);
     }
 }
+
+void SemanticAnalyzer::visit(ASTNodeSizeof *node) {
+    /* Empty */
+}

@@ -32,7 +32,7 @@
 
 %nonassoc TYPE ID LABEL INT_LITERAL BOOL_LITERAL STRING_LITERAL CONSTANT BEGIN_BLOCK END_BLOCK
 
-%nonassoc IF ELSE FOR WHILE DO REPEAT UNTIL BREAK CONTINUE RETURN NEW DELETE GOTO
+%nonassoc IF ELSE FOR WHILE DO REPEAT UNTIL BREAK CONTINUE RETURN NEW DELETE GOTO SIZEOF
 %left AND OR NOT
 %left EQ NEQ LESS LESSEQ GRT GRTEQ
 
@@ -515,6 +515,10 @@ memory_expr:
     | REF ID {
         $$ = new ASTNodeReference(*$2, yylineno);
         delete $2;
+    }
+    | SIZEOF L_BRACKET TYPE R_BRACKET {
+        $$ = new ASTNodeSizeof(*$3, yylineno);
+        delete $3;
     }
 ;
 

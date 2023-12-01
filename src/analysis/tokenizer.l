@@ -55,6 +55,7 @@ return                  { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(RET
 new                     { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(NEW); } }
 delete                  { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(DELETE); } }
 goto                    { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(GOTO); } }
+sizeof                  { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(SIZEOF); } }
 \+                      { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(ADD); } }
 \-                      { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(SUB); } }
 \*                      { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(MUL); } }

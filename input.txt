@@ -1,27 +1,6 @@
 int main() {
-    print_str("Hello, world!");
-
-    /*
-    string s = read_str();
-    print_str(s);
-    */
-
-    string a = "abc";
-    string b = "abc";
-
-    bool same = strcmp(a, b);
-    if (same) {
-        print_str("same");
-    } else {
-        print_str("different");
-    }
-
-    same = strcmp(a, "ABC");
-    if (same) {
-        print_str("same");
-    } else {
-        print_str("different");
-    }
+    int i = sizeof(int);
+    int b = sizeof(void);
 
     return 0;
 }
