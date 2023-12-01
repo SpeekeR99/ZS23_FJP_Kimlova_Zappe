@@ -134,6 +134,7 @@ public:
     void visit(ASTNodeIntLiteral *node) override;
     void visit(ASTNodeBoolLiteral *node) override;
     void visit(ASTNodeAssignExpression *node) override;
+    void visit(ASTNodeTernaryOperator *node) override;
     void visit(ASTNodeBinaryOperator *node) override;
     void visit(ASTNodeUnaryOperator *node) override;
     void visit(ASTNodeCast *node) override;

@@ -132,15 +132,19 @@ void SemanticAnalyzer::visit(ASTNodeDeclVar *node) {
         }
 
         if (node->is_pointer) {
-            if (!dynamic_cast<ASTNodeReference *>(node->expression) && !dynamic_cast<ASTNodeNew *>(node->expression)) {
-                std::cerr << "Semantic error: variable \"" << node->name << "\" is a pointer and must be initialized with a reference or new, error on line " << node->line << std::endl;
-                exit(1);
-            }
-            else if (auto binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(node->expression)) {
-                if (!binary_operator->contains_reference()) {
-                    std::cerr << "Semantic error: variable \"" << node->name << "\" is a pointer and must be initialized with a reference or new, error on line " << node->line << std::endl;
+            if (auto ternary_operator = dynamic_cast<ASTNodeTernaryOperator *>(node->expression)) {
+                if (!dynamic_cast<ASTNodeReference *>(ternary_operator->true_expression) && !dynamic_cast<ASTNodeNew *>(ternary_operator->true_expression)) {
+                    std::cerr << "Semantic error: variable \"" << node->name << "\" is a pointer and must be assigned with a reference or new, error on line " << node->line << std::endl;
                     exit(1);
                 }
+                if (!dynamic_cast<ASTNodeReference *>(ternary_operator->false_expression) && !dynamic_cast<ASTNodeNew *>(ternary_operator->false_expression)) {
+                    std::cerr << "Semantic error: variable \"" << node->name << "\" is a pointer and must be assigned with a reference or new, error on line " << node->line << std::endl;
+                    exit(1);
+                }
+            }
+            else if (!dynamic_cast<ASTNodeReference *>(node->expression) && !dynamic_cast<ASTNodeNew *>(node->expression)) {
+                std::cerr << "Semantic error: variable \"" << node->name << "\" is a pointer and must be initialized with a reference or new, error on line " << node->line << std::endl;
+                exit(1);
             }
         }
     }
@@ -389,20 +393,31 @@ void SemanticAnalyzer::visit(ASTNodeAssignExpression *node) {
         }
 
         if (symbol.is_pointer) {
-            if (!dynamic_cast<ASTNodeReference *>(node->expression) && !dynamic_cast<ASTNodeNew *>(node->expression)) {
-                std::cerr << "Semantic error: variable \"" << node->name << "\" is a pointer and must be assigned with a reference or new, error on line " << node->line << std::endl;
-                exit(1);
-            } else if (auto binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(node->expression)) {
-                if (!binary_operator->contains_reference()) {
+            if (auto ternary_operator = dynamic_cast<ASTNodeTernaryOperator *>(node->expression)) {
+                if (!dynamic_cast<ASTNodeReference *>(ternary_operator->true_expression) && !dynamic_cast<ASTNodeNew *>(ternary_operator->true_expression)) {
                     std::cerr << "Semantic error: variable \"" << node->name << "\" is a pointer and must be assigned with a reference or new, error on line " << node->line << std::endl;
                     exit(1);
                 }
+                if (!dynamic_cast<ASTNodeReference *>(ternary_operator->false_expression) && !dynamic_cast<ASTNodeNew *>(ternary_operator->false_expression)) {
+                    std::cerr << "Semantic error: variable \"" << node->name << "\" is a pointer and must be assigned with a reference or new, error on line " << node->line << std::endl;
+                    exit(1);
+                }
+            }
+            else if (!dynamic_cast<ASTNodeReference *>(node->expression) && !dynamic_cast<ASTNodeNew *>(node->expression)) {
+                std::cerr << "Semantic error: variable \"" << node->name << "\" is a pointer and must be assigned with a reference or new, error on line " << node->line << std::endl;
+                exit(1);
             }
         }
 
         if (symbol.is_const)
             this->assigned_constants[node->name] = true;
     }
+}
+
+void SemanticAnalyzer::visit(ASTNodeTernaryOperator *node) {
+    node->condition->accept(this);
+    node->true_expression->accept(this);
+    node->false_expression->accept(this);
 }
 
 void SemanticAnalyzer::visit(ASTNodeBinaryOperator *node) {

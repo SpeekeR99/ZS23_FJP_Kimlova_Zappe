@@ -1,9 +1,9 @@
 int main() {
-    int i = 3;
-
-    until (i == 0) do {
-        i = i - 1;
-    };
+    int a = true;
+    int b = a ? 1 : 0;
+    int ^c;
+    c = (a && b) ? @a : @b;
+    ^(c) = 50;
 
     return 0;
 }

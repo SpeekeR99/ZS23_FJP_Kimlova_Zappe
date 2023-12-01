@@ -19,6 +19,7 @@ class ASTNodeIdentifier;
 class ASTNodeIntLiteral;
 class ASTNodeBoolLiteral;
 class ASTNodeAssignExpression;
+class ASTNodeTernaryOperator;
 class ASTNodeBinaryOperator;
 class ASTNodeUnaryOperator;
 class ASTNodeCast;
@@ -46,6 +47,7 @@ public:
     virtual void visit(ASTNodeIntLiteral *node) = 0;
     virtual void visit(ASTNodeBoolLiteral *node) = 0;
     virtual void visit(ASTNodeAssignExpression *node) = 0;
+    virtual void visit(ASTNodeTernaryOperator *node) = 0;
     virtual void visit(ASTNodeBinaryOperator *node) = 0;
     virtual void visit(ASTNodeUnaryOperator *node) = 0;
     virtual void visit(ASTNodeCast *node) = 0;
@@ -355,6 +357,28 @@ public:
 
     ~ASTNodeAssignExpression() override {
         delete expression;
+    }
+
+    void accept(ASTVisitor *visitor) override {
+        visitor->visit(this);
+    }
+};
+
+class ASTNodeTernaryOperator : public ASTNodeExpression {
+public:
+    int line;
+    ASTNodeExpression *condition;
+    ASTNodeExpression *true_expression;
+    ASTNodeExpression *false_expression;
+
+    ASTNodeTernaryOperator(ASTNodeExpression *condition, ASTNodeExpression *true_expression, ASTNodeExpression *false_expression, int line) : condition(condition), true_expression(true_expression), false_expression(false_expression), line(line) {
+        /* Empty */
+    }
+
+    ~ASTNodeTernaryOperator() override {
+        delete condition;
+        delete true_expression;
+        delete false_expression;
     }
 
     void accept(ASTVisitor *visitor) override {

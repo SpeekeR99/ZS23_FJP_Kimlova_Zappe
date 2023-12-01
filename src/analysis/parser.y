@@ -36,7 +36,7 @@
 %left AND OR NOT
 %left EQ NEQ LESS LESSEQ GRT GRTEQ
 
-%left SEMICOLON COMMA L_BRACKET R_BRACKET COLON
+%left SEMICOLON COMMA L_BRACKET R_BRACKET COLON QUESTION
 
 %right ASSIGN_OP
 
@@ -46,7 +46,7 @@
 %left U_MINUS
 
 %type <string> ID TYPE INT_LITERAL BOOL_LITERAL ADD SUB MUL DIV MOD AND OR NOT EQ NEQ LESS LESSEQ GRT GRTEQ ASSIGN_OP
-%type <expr> expr arithm_expr logic_expr compare_expr cast_expr call_func_expr assign_expr memory_expr
+%type <expr> expr arithm_expr logic_expr compare_expr cast_expr call_func_expr assign_expr ternary_expr memory_expr
 %type <stmt> stmt decl_var_stmt decl_func_stmt if_stmt loop_stmt while_stmt do_while_stmt until_do_stmt repeat_until_stmt for_stmt jump_stmt break_stmt continue_stmt return_stmt goto_stmt
 %type <block> program stmts block else_stmt
 %type <params> params params_list
@@ -108,6 +108,26 @@ decl_var_stmt:
     }
     | CONSTANT TYPE ptr_modifier ID ASSIGN_OP expr SEMICOLON {
         $$ = new ASTNodeDeclVar(*$2, $3, *$4, true, $6, yylineno);
+        delete $2;
+        delete $4;
+    }
+    | TYPE ID ASSIGN_OP expr QUESTION expr COLON expr SEMICOLON {
+        $$ = new ASTNodeDeclVar(*$1, 0, *$2, false, new ASTNodeTernaryOperator($4, $6, $8, yylineno), yylineno);
+        delete $1;
+        delete $2;
+    }
+    | TYPE ptr_modifier ID ASSIGN_OP expr QUESTION expr COLON expr SEMICOLON {
+        $$ = new ASTNodeDeclVar(*$1, $2, *$3, false, new ASTNodeTernaryOperator($5, $7, $9, yylineno), yylineno);
+        delete $1;
+        delete $3;
+    }
+    | CONSTANT TYPE ID ASSIGN_OP expr QUESTION expr COLON expr SEMICOLON {
+        $$ = new ASTNodeDeclVar(*$2, 0, *$3, true, new ASTNodeTernaryOperator($5, $7, $9, yylineno), yylineno);
+        delete $2;
+        delete $3;
+    }
+    | CONSTANT TYPE ptr_modifier ID ASSIGN_OP expr QUESTION expr COLON expr SEMICOLON {
+        $$ = new ASTNodeDeclVar(*$2, $3, *$4, true, new ASTNodeTernaryOperator($6, $8, $10, yylineno), yylineno);
         delete $2;
         delete $4;
     }
@@ -367,14 +387,23 @@ expr:
 ;
 
 assign_expr:
-    ID ASSIGN_OP expr {
+    ID ASSIGN_OP ternary_expr {
         $$ = new ASTNodeAssignExpression(*$1, nullptr, $3, yylineno);
         delete $1;
     }
-    | expr ASSIGN_OP expr {
+    | expr ASSIGN_OP ternary_expr {
         if (auto deref = dynamic_cast<ASTNodeDereference *>($1))
             deref->is_lvalue = true;
         $$ = new ASTNodeAssignExpression("", $1, $3, yylineno);
+    }
+;
+
+ternary_expr:
+    expr {
+        $$ = $1;
+    }
+    | expr QUESTION expr COLON expr {
+        $$ = new ASTNodeTernaryOperator($1, $3, $5, yylineno);
     }
 ;
 

@@ -277,6 +277,10 @@ void InstructionsGenerator::visit(ASTNodeDeclVar *node) {
             if (binary_operator->contains_reference())
                 symbol.is_pointing_to_stack = true;
         }
+        else if (auto ternary_operator = dynamic_cast<ASTNodeTernaryOperator *>(node->expression)) {
+            if (dynamic_cast<ASTNodeReference *>(ternary_operator->true_expression) || dynamic_cast<ASTNodeReference *>(ternary_operator->false_expression))
+                symbol.is_pointing_to_stack = true;
+        }
 
         auto address = this->symtab.get_symbol(node->name).address;
         this->generate(PL0_STO, 0, address);
@@ -579,11 +583,35 @@ void InstructionsGenerator::visit(ASTNodeAssignExpression *node) {
             if (binary_operator->contains_reference())
                 symbol.is_pointing_to_stack = true;
         }
+        else if (auto ternary_operator = dynamic_cast<ASTNodeTernaryOperator *>(node->expression)) {
+            if (dynamic_cast<ASTNodeReference *>(ternary_operator->true_expression) || dynamic_cast<ASTNodeReference *>(ternary_operator->false_expression))
+                symbol.is_pointing_to_stack = true;
+        }
 
         auto address = symbol.address;
         auto level = this->symtab.get_symbol_level(node->name);
         this->generate(PL0_STO, level, address);
     }
+}
+
+void InstructionsGenerator::visit(ASTNodeTernaryOperator *node) {
+    node->condition->accept(this);
+
+    auto jmc_instruction_line = this->get_instruction_counter();
+    this->generate(PL0_JMC, 0, 0);
+
+    node->true_expression->accept(this);
+
+    auto jmp_instruction_line = this->get_instruction_counter();
+    this->generate(PL0_JMP, 0, 0);
+
+    auto &jmc_instruction = this->get_instruction(jmc_instruction_line);
+    jmc_instruction.parameter = this->get_instruction_counter();
+
+    node->false_expression->accept(this);
+
+    auto &jmp_instruction = this->get_instruction(jmp_instruction_line);
+    jmp_instruction.parameter = this->get_instruction_counter();
 }
 
 void InstructionsGenerator::visit(ASTNodeBinaryOperator *node) {
