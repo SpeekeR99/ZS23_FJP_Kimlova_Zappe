@@ -1,6 +1,13 @@
 int main() {
-    int ^a = new(int, 5);
-    ^(a + 2) = 20;
+    string ^array = new(string, 4);
+    ^(array) = "Hello";
+    ^(array + 1) = ", ";
+    ^(array + 2) = "World";
+    ^(array + 3) = "!\n";
+
+    for (int i = 0; i < 4; i = i + 1) {
+        print_str(^(array + i));
+    }
 
     return 0;
 }

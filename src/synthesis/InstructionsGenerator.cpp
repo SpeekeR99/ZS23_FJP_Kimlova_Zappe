@@ -939,7 +939,6 @@ void InstructionsGenerator::visit(ASTNodeBoolLiteral *node) {
 void InstructionsGenerator::visit(ASTNodeStringLiteral *node) {
     this->symtab.insert_symbol("__TEMP_STRING__", VARIABLE, STRING, false);
     auto string_literal_address = this->symtab.get_symbol("__TEMP_STRING__").address;
-    this->generate(PL0_INT, 0, 1);
     this->generate(PL0_LIT, 0, node->value.length());
     this->generate(PL0_NEW, 0, 0);
     this->generate(PL0_STO, 0, string_literal_address);
