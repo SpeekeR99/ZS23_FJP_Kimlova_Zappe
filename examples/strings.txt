@@ -1,26 +1,25 @@
 int main() {
-    print_str("Hello, world!");
+    print_str("Hello, world!\n");
 
-    /*
     string s = read_str();
+    s = strcat(s, "\n");
     print_str(s);
-    */
 
     string a = "abc";
     string b = "abc";
 
     bool same = strcmp(a, b);
     if (same) {
-        print_str("same");
+        print_str("same\n");
     } else {
-        print_str("different");
+        print_str("different\n");
     }
 
     same = strcmp(a, "ABC");
     if (same) {
-        print_str("same");
+        print_str("same\n");
     } else {
-        print_str("different");
+        print_str("different\n");
     }
 
     return 0;

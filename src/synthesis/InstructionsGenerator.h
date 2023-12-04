@@ -90,19 +90,22 @@ private:
     ASTNodeBlock* global_block;
     std::vector<std::string> used_builtin_functions;
     std::vector<Instruction> instructions;
-    std::uint32_t instruction_counter;
+    uint32_t instruction_counter;
     SymbolTable symtab;
-    std::vector<int> number_of_declared_variables;
     std::map<std::string, int> declared_functions;
     std::vector<uint32_t> break_stack;
     std::vector<uint32_t> continue_stack;
     std::vector<uint32_t> sizeof_params_stack;
     std::vector<uint32_t> sizeof_return_type_stack;
+    std::vector<uint32_t> sizeof_arguments_stack;
     std::map<std::string, uint32_t> labels_to_line;
     std::map<std::string, uint32_t> goto_labels_line;
+    bool is_array_of_strings = false;
 
     void generate(const std::string &instruction, int level, int parameter);
     void generate(InstructionIndex instruction, int level, int parameter);
+
+    void register_label(ASTNode *node);
 
     void init_builtin_functions();
     void gen_print_num();

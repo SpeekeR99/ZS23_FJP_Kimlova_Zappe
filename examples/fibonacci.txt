@@ -3,24 +3,7 @@ int recursive_fib(int n) {
         return n;
     }
 
-    /*int temp = recursive_fib(n - 1);
-    int temp2 = recursive_fib(n - 2);*/
-
     return recursive_fib(n - 1) + recursive_fib(n - 2);
-
-    /*
-        LOAD ze zaporne adresy (nacteni parametru)
-        STORE na moji adresu (zmizi z vrcholu)
-        ...
-        RETURN na zapornou adresu (vraceni hodnoty)
-
-        2 (parametr)
-        _ (chlivek pro return)
-        1 (parametr)
-        _ (chlivek pro return)
-
-        parametry visi na zasobniku, secteni tedy secte parametr a return, nikoliv return a return
-   */
 }
 
 int iterative_fib(int n) {
@@ -44,10 +27,14 @@ int iterative_fib(int n) {
 }
 
 int main() {
-    int n = 3;
+    int n = 10;
 
     int rec = recursive_fib(n);
     int it = iterative_fib(n);
+
+    print_num(rec);
+    print_str("\n");
+    print_num(it);
 
     return 0;
 }

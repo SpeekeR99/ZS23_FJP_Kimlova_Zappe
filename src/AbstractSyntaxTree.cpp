@@ -33,8 +33,8 @@ int ASTNodeBlock::get_number_of_declared_variables() {
     return declared_variables;
 }
 
-std::vector<int> ASTNodeBlock::get_sizeof_variables() {
-    std::vector<int> sizeof_variables;
+std::vector<uint32_t> ASTNodeBlock::get_sizeof_variables() {
+    std::vector<uint32_t> sizeof_variables;
     for (auto &statement : statements) {
         if (auto *variable_declaration = dynamic_cast<ASTNodeDeclVar *>(statement))
             sizeof_variables.push_back(variable_declaration->sizeof_type);
@@ -72,22 +72,26 @@ bool ASTNodeBinaryOperator::contains_reference() {
 }
 
 std::string ASTNodeBinaryOperator::find_dereference() {
-    if (auto *left_binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(this->left))
-        return left_binary_operator->find_dereference();
-    else if (auto *right_binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(this->right))
-        return right_binary_operator->find_dereference();
-    else if (auto *left_reference = dynamic_cast<ASTNodeReference *>(this->left))
-        return left_reference->identifier;
-    else if (auto *right_reference = dynamic_cast<ASTNodeReference *>(this->right))
-        return right_reference->identifier;
-    return "";
+    std::string result;
+    if (auto *left_binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(this->left)) {
+        result = left_binary_operator->find_dereference();
+        if (!result.empty())
+            return result;
+    } else if (auto *right_binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(this->right)) {
+        result = right_binary_operator->find_dereference();
+        if (!result.empty())
+            return result;
+    } else if (auto *left_id = dynamic_cast<ASTNodeIdentifier *>(this->left))
+        return left_id->name;
+    else if (auto *right_id = dynamic_cast<ASTNodeIdentifier *>(this->right))
+        return right_id->name;
+    return result;
 }
 
 void ASTNodeDereference::what_do_i_dereference() {
     if (auto *id = dynamic_cast<ASTNodeIdentifier *>(this->expression)) {
         this->identifier = id->name;
     } else if (auto *binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(this->expression)) {
-        if (binary_operator->find_dereference() != "")
-            this->identifier = binary_operator->find_dereference();
+       this->identifier = binary_operator->find_dereference();
     }
 }

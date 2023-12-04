@@ -20,8 +20,7 @@ ValueType str_to_val_type(const std::string &str) {
     else if (str == "string")
         return STRING;
     else {
-        std::cout << "Invalid value type: " << str << std::endl;
-        throw std::runtime_error("Invalid value type!");
+        return UNDEFINED_TYPE;
     }
 }
 
@@ -35,9 +34,12 @@ int sizeof_val_type(ValueType type) {
     else if (type == STRING)
         return STRING_SIZE;
     else {
-        std::cout << "Invalid value type: " << type << std::endl;
-        throw std::runtime_error("Invalid value type!");
+        return UNDEFINED_TYPE_SIZE;
     }
+}
+
+bool Type::operator==(const Type &other) const {
+    return this->type == other.type && this->size == other.size && this->is_pointer == other.is_pointer;
 }
 
 bool SymbolTableRecord::operator==(const SymbolTableRecord &other) const {
@@ -54,17 +56,13 @@ ScopeSymbolTable::ScopeSymbolTable(uint32_t address_base, uint32_t address_offse
 
 ScopeSymbolTable::~ScopeSymbolTable() = default;
 
-void ScopeSymbolTable::insert(const std::string &name, SymbolType symbol_type, ValueType type, bool is_const, uint32_t address) {
+void ScopeSymbolTable::insert(const std::string &name, SymbolType symbol_type, Type type, bool is_const, uint32_t address) {
     if (symbol_type == VARIABLE) {
         this->table[name] = SymbolTableRecord{name, symbol_type, type, is_const, this->address_base + this->address_offset};
-        this->address_offset += sizeof_val_type(type);
+        this->address_offset += type.size;
     }
     else
         this->table[name] = SymbolTableRecord{name, symbol_type, type, is_const, address};
-}
-
-void ScopeSymbolTable::insert(const std::string &name, SymbolType symbol_type, const std::string &type, bool is_const, uint32_t address) {
-    this->insert(name, symbol_type, str_to_val_type(type), is_const, address);
 }
 
 bool ScopeSymbolTable::exists(const std::string &name) {
@@ -74,7 +72,7 @@ bool ScopeSymbolTable::exists(const std::string &name) {
 
 void ScopeSymbolTable::remove(const std::string &name) {
     auto &symbol = this->get(name);
-    this->address_offset -= sizeof_val_type(symbol.type);
+    this->address_offset -= symbol.type.size;
     this->table.erase(name);
 }
 
@@ -115,37 +113,37 @@ SymbolTable::SymbolTable() : table() {
 }
 
 void SymbolTable::init_builtin_functions() {
-    this->insert_symbol("print_num", FUNCTION, "void", false, 0);
+    this->insert_symbol("print_num", FUNCTION, void_t, false, 0);
     auto &print_num = this->get_symbol("print_num");
-    auto print_param = SymbolTableRecord{"__print_num_param__", VARIABLE, str_to_val_type("int"), false};
+    auto print_param = SymbolTableRecord{"__print_num_param__", VARIABLE, int_t, false};
     print_num.parameters.emplace_back(print_param);
 
-    this->insert_symbol("read_num", FUNCTION, "int", false, 0);
+    this->insert_symbol("read_num", FUNCTION, int_t, false, 0);
 
-    this->insert_symbol("print_str", FUNCTION, "void", false, 0);
+    this->insert_symbol("print_str", FUNCTION, void_t, false, 0);
     auto &print_str = this->get_symbol("print_str");
-    print_param = SymbolTableRecord{"__print_str_param__", VARIABLE, str_to_val_type("string"), false};
+    print_param = SymbolTableRecord{"__print_str_param__", VARIABLE, string_t, false};
     print_str.parameters.emplace_back(print_param);
 
-    this->insert_symbol("read_str", FUNCTION, "string", false, 0);
+    this->insert_symbol("read_str", FUNCTION, string_t, false, 0);
 
-    this->insert_symbol("strcmp", FUNCTION, "int", false, 0);
+    this->insert_symbol("strcmp", FUNCTION, int_t, false, 0);
     auto &strcmp = this->get_symbol("strcmp");
-    print_param = SymbolTableRecord{"__strcmp_param1__", VARIABLE, str_to_val_type("string"), false};
+    print_param = SymbolTableRecord{"__strcmp_param1__", VARIABLE, string_t, false};
     strcmp.parameters.emplace_back(print_param);
-    print_param = SymbolTableRecord{"__strcmp_param2__", VARIABLE, str_to_val_type("string"), false};
+    print_param = SymbolTableRecord{"__strcmp_param2__", VARIABLE, string_t, false};
     strcmp.parameters.emplace_back(print_param);
 
-    this->insert_symbol("strcat", FUNCTION, "string", false, 0);
+    this->insert_symbol("strcat", FUNCTION, string_t, false, 0);
     auto &strcat = this->get_symbol("strcat");
-    print_param = SymbolTableRecord{"__strcat_param1__", VARIABLE, str_to_val_type("string"), false};
+    print_param = SymbolTableRecord{"__strcat_param1__", VARIABLE, string_t, false};
     strcat.parameters.emplace_back(print_param);
-    print_param = SymbolTableRecord{"__strcat_param2__", VARIABLE, str_to_val_type("string"), false};
+    print_param = SymbolTableRecord{"__strcat_param2__", VARIABLE, string_t, false};
     strcat.parameters.emplace_back(print_param);
 
-    this->insert_symbol("strlen", FUNCTION, "int", false, 0);
+    this->insert_symbol("strlen", FUNCTION, int_t, false, 0);
     auto &strlen = this->get_symbol("strlen");
-    print_param = SymbolTableRecord{"__strlen_param__", VARIABLE, str_to_val_type("string"), false};
+    print_param = SymbolTableRecord{"__strlen_param__", VARIABLE, string_t, false};
     strlen.parameters.emplace_back(print_param);
 }
 
@@ -159,12 +157,20 @@ void SymbolTable::remove_scope() {
     this->table.pop_back();
 }
 
-void SymbolTable::insert_symbol(const std::string &name, SymbolType symbol_type, ValueType type, bool is_const, uint32_t address) {
-    this->table.back().insert(name, symbol_type, type, is_const, address);
+void SymbolTable::allocate_symbols(uint32_t number_of_symbols, std::vector<uint32_t> size_of_symbols) {
+    for (int i = 0; i < number_of_symbols; i++)
+        this->table.back().insert("__TEMP__" + std::to_string(temp_counter++), VARIABLE, size_representant[size_of_symbols[i]], false);
 }
 
-void SymbolTable::insert_symbol(const std::string &name, SymbolType symbol_type, const std::string &type, bool is_const, uint32_t address) {
-    this->insert_symbol(name, symbol_type, str_to_val_type(type), is_const, address);
+SymbolTableRecord &SymbolTable::get_first_empty_symbol(uint32_t size_of_symbol) {
+    for (auto &it : std::ranges::reverse_view(this->table)) {
+        for (auto & [key, value] : it.get_table()) {
+            if (value.name.contains("__TEMP__") && value.type.size == size_of_symbol)
+                return value;
+        }
+    }
+
+    return undefined_record;
 }
 
 void SymbolTable::change_symbol_name(const std::string &old_name, const std::string &new_name) {
@@ -175,6 +181,10 @@ void SymbolTable::change_symbol_name(const std::string &old_name, const std::str
 
     scope.get_table().erase(old_name);
     scope.get_table()[new_name] = record_deep_copy;
+}
+
+void SymbolTable::insert_symbol(const std::string &name, SymbolType symbol_type, Type type, bool is_const, uint32_t address) {
+    this->table.back().insert(name, symbol_type, type, is_const, address);
 }
 
 void SymbolTable::remove_symbol(const std::string &name) {
@@ -227,7 +237,7 @@ uint32_t SymbolTable::get_sizeof_variables() const {
     uint32_t sizeof_variables = 0;
     for (const auto & [key, value] : this->table.back().get_table())
         if (value.symbol_type == VARIABLE)
-            sizeof_variables += sizeof_val_type(value.type);
+            sizeof_variables += value.type.size;
     return sizeof_variables;
 }
 
@@ -241,7 +251,10 @@ std::ostream &operator<<(std::ostream &os, const SymbolTable &table) {
         for (const auto &record : scope.get_table()) {
             os << "\tName: " << record.second.name << std::endl;
             os << "\tSymbol Type: " << record.second.symbol_type << std::endl;
-            os << "\tValue Type: " << record.second.type << std::endl;
+            os << "\tValue Type: " << record.second.type.type << std::endl;
+            os << "\tSize: " << record.second.type.size << std::endl;
+            os << "\tIs Pointer: " << record.second.type.is_pointer << std::endl;
+            os << "\tTo stack: " << record.second.type.is_pointing_to_stack << std::endl;
             os << "\tIs Const: " << record.second.is_const << std::endl;
             os << "\tAddress: " << record.second.address << std::endl << std::endl;
         }

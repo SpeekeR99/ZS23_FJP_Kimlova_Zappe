@@ -1,9 +1,10 @@
 #include "InstructionsGenerator.h"
 
 InstructionsGenerator::InstructionsGenerator(ASTNodeBlock *global_block, std::vector<std::string> &used_builtin_functions) : global_block(global_block), used_builtin_functions(used_builtin_functions), instructions(),
-                                                                           instruction_counter(0), symtab(), number_of_declared_variables(),
+                                                                           instruction_counter(0), symtab(),
                                                                            declared_functions(), break_stack(),
-                                                                           continue_stack(), sizeof_params_stack(), sizeof_return_type_stack() {
+                                                                           continue_stack(), sizeof_params_stack(), sizeof_return_type_stack(), sizeof_arguments_stack(),
+                                                                           labels_to_line(), goto_labels_line() {
     /* Empty */
 }
 
@@ -33,537 +34,10 @@ void InstructionsGenerator::set_instruction_counter(std::uint32_t counter) {
     this->instruction_counter = counter;
 }
 
-void InstructionsGenerator::gen_print_num() {
-    this->symtab.insert_scope(0, ACTIVATION_RECORD_SIZE, true);
-
-    this->generate(PL0_INT, 0, ACTIVATION_RECORD_SIZE + 2);
-    this->symtab.insert_symbol("__TEMP_PRINT__", VARIABLE, INTEGER, false);
-    this->generate(PL0_LOD, 0, -1); /* Load first and only argument */
-    auto temp_print_address = this->symtab.get_symbol("__TEMP_PRINT__").address;
-    this->generate(PL0_STO, 0, temp_print_address); /* Store the argument in the first temporary variable */
-
-    this->symtab.insert_symbol("__TEMP_COUNTER__", VARIABLE, INTEGER, false);
-    auto temp_counter_address = this->symtab.get_symbol("__TEMP_COUNTER__").address;
-    this->generate(PL0_LIT, 0, 0);
-    this->generate(PL0_STO, 0, temp_counter_address);
-
-    auto jump_to_start = this->get_instruction_counter();
-    this->generate(PL0_INT, 0, 1);
-    this->generate(PL0_LOD, 0, temp_print_address); /* Load the number */
-
-    this->generate(PL0_LIT, 0, 10);
-    this->generate(PL0_OPR, 0, PL0_MOD); /* Divide the number by 10 */
-
-    this->generate(PL0_LIT, 0, 0);
-    this->generate(PL0_LIT, 0, 5);
-    this->generate(PL0_LOD, 0, temp_counter_address);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_PST, 0, 0); /* Store the result back in the temporary variable */
-
-    this->generate(PL0_LOD, 0, temp_print_address); /* Load the number */
-    this->generate(PL0_LIT, 0, 10);
-    this->generate(PL0_OPR, 0, PL0_DIV); /* Divide the number by 10 */
-    this->generate(PL0_STO, 0, temp_print_address); /* Store the result back in the temporary variable */
-
-    this->generate(PL0_LOD, 0, temp_counter_address);
-    this->generate(PL0_LIT, 0, 1);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_STO, 0, temp_counter_address); /* Increment the counter */
-
-    this->generate(PL0_LOD, 0, temp_print_address);
-    this->generate(PL0_LIT, 0, 0);
-    this->generate(PL0_OPR, 0, PL0_EQ);
-
-    this->generate(PL0_JMC, 0, jump_to_start);
-
-    /* Buffer of digits is backwards now */
-    auto jump_to_print_start = this->get_instruction_counter();
-    this->generate(PL0_LIT, 0, 0);
-    this->generate(PL0_LIT, 0, 4);
-    this->generate(PL0_LOD, 0, temp_counter_address);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_PLD, 0, 0); /* Load the digit */
-
-    this->generate(PL0_LIT, 0, 48);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-
-    this->generate(PL0_WRI, 0, 0); /* Write the digit */
-
-    this->generate(PL0_LOD, 0, temp_counter_address);
-    this->generate(PL0_LIT, 0, 1);
-    this->generate(PL0_OPR, 0, PL0_SUB);
-    this->generate(PL0_STO, 0, temp_counter_address); /* Decrement the counter */
-
-    this->generate(PL0_LOD, 0, temp_counter_address);
-    this->generate(PL0_LIT, 0, 0);
-    this->generate(PL0_OPR, 0, PL0_EQ);
-
-    this->generate(PL0_JMC, 0, jump_to_print_start);
-
-    this->generate(PL0_RET, 0, 0);
-
-    this->symtab.remove_scope();
-}
-
-void InstructionsGenerator::gen_read_num() {
-    /* Initialize the scope and the activation record */
-    this->symtab.insert_scope(0, ACTIVATION_RECORD_SIZE, true);
-    this->generate(PL0_INT, 0, ACTIVATION_RECORD_SIZE + 2);
-
-    /* Two temporary variables are used to read the number and store the result */
-    this->symtab.insert_symbol("__TEMP_READ__", VARIABLE, INTEGER, false);
-    this->symtab.insert_symbol("__TEMP_RESULT__", VARIABLE, INTEGER, false);
-
-    /* Result is initialized to 0 */
-    auto temp_read_address = this->symtab.get_symbol("__TEMP_READ__").address;
-    auto temp_result_address = this->symtab.get_symbol("__TEMP_RESULT__").address;
-    this->generate(PL0_LIT, 0, 0);
-    this->generate(PL0_STO, 0, temp_result_address);
-
-    /* Read instruction address is the address to jump to (loop) */
-    auto rea_instruction_line = this->get_instruction_counter();
-    this->generate(PL0_REA, 0, 0);
-    this->generate(PL0_STO, 0, temp_read_address);
-
-    /* Check if the read number is equal to 10 (ASCII for newline) */
-    this->generate(PL0_LOD, 0, temp_read_address);
-    this->generate(PL0_LIT, 0, 10);
-    this->generate(PL0_OPR, 0, PL0_NEQ);
-
-    /* If it is not new line continue reading and adding to the result */
-    auto jmc_instruction_line = this->get_instruction_counter();
-    this->generate(PL0_JMC, 0, 0);
-
-    /* Load last read digit */
-    this->generate(PL0_LOD, 0, temp_read_address);
-    /* Subtract '0' to get the actual number */
-    this->generate(PL0_LIT, 0, 48);
-    this->generate(PL0_OPR, 0, PL0_SUB);
-    /* Multiply the result by 10 */
-    this->generate(PL0_LOD, 0, temp_result_address);
-    this->generate(PL0_LIT, 0, 10);
-    this->generate(PL0_OPR, 0, PL0_MUL);
-    /* Add the last read digit */
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    /* Store the result */
-    this->generate(PL0_STO, 0, temp_result_address);
-    this->generate(PL0_JMP, 0, rea_instruction_line);
-
-    /* Jump here if the read number is equal to 10 (ASCII for newline) */
-    auto &jmc_instruction = this->get_instruction(jmc_instruction_line);
-    jmc_instruction.parameter = this->get_instruction_counter();
-
-    /* Load the result to be at the top of the stack */
-    this->generate(PL0_LOD, 0, temp_result_address);
-
-    /* Return the result */
-    this->generate(PL0_STO, 0, -1); /* sizeof int is 1 */
-    this->generate(PL0_RET, 0, 0);
-
-    /* Cleanup */
-    this->symtab.remove_scope();
-}
-
-void InstructionsGenerator::gen_print_string() {
-    this->symtab.insert_scope(0, ACTIVATION_RECORD_SIZE, true);
-
-    this->generate(PL0_INT, 0, ACTIVATION_RECORD_SIZE + 3);
-    this->symtab.insert_symbol("__TEMP_PRINT__", VARIABLE, INTEGER, false);
-    this->generate(PL0_LOD, 0, -1); /* Load first and only argument */
-    auto temp_print_address = this->symtab.get_symbol("__TEMP_PRINT__").address;
-    this->generate(PL0_STO, 0, temp_print_address); /* Store the argument in the first temporary variable */
-
-    this->symtab.insert_symbol("__TEMP_STRING_SIZE__", VARIABLE, INTEGER, false);
-    auto temp_string_size_address = this->symtab.get_symbol("__TEMP_STRING_SIZE__").address;
-    this->generate(PL0_LIT, 0, -1);
-    this->generate(PL0_LOD, 0, temp_print_address);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_LDA, 0, 0);
-    this->generate(PL0_STO, 0, temp_string_size_address);
-
-    this->symtab.insert_symbol("__TEMP_COUNTER__", VARIABLE, INTEGER, false);
-    auto temp_counter_address = this->symtab.get_symbol("__TEMP_COUNTER__").address;
-    this->generate(PL0_LIT, 0, 0);
-    this->generate(PL0_STO, 0, temp_counter_address);
-
-    auto jump_to_start = this->get_instruction_counter();
-    this->generate(PL0_LOD, 0, temp_print_address); /* Load the string */
-    this->generate(PL0_LOD, 0, temp_counter_address); /* Load the counter */
-    this->generate(PL0_OPR, 0, PL0_ADD); /* Add the counter to the string address */
-    this->generate(PL0_LDA, 0, 0); /* Load the character */
-    this->generate(PL0_WRI, 0, 0); /* Write the character */
-    this->generate(PL0_LOD, 0, temp_counter_address); /* Load the counter */
-    this->generate(PL0_LIT, 0, 1);
-    this->generate(PL0_OPR, 0, PL0_ADD); /* Increment the counter */
-    this->generate(PL0_STO, 0, temp_counter_address); /* Store the counter */
-    this->generate(PL0_LOD, 0, temp_counter_address); /* Load the counter */
-    this->generate(PL0_LOD, 0, temp_string_size_address); /* Load the string size */
-    this->generate(PL0_OPR, 0, PL0_EQ); /* Check if the counter is equal to the string size */
-    this->generate(PL0_JMC, 0, jump_to_start); /* If not equal, jump to the start */
-
-    this->generate(PL0_RET, 0, 0);
-
-    this->symtab.remove_scope();
-}
-
-void InstructionsGenerator::gen_read_string() {
-    this->symtab.insert_scope(0, ACTIVATION_RECORD_SIZE, true);
-    this->generate(PL0_INT, 0, ACTIVATION_RECORD_SIZE + 2);
-
-    this->symtab.insert_symbol("__TEMP_STRING_SIZE__", VARIABLE, INTEGER, false);
-    auto temp_string_size_address = this->symtab.get_symbol("__TEMP_STRING_SIZE__").address;
-    this->generate(PL0_LIT, 0, 0);
-    this->generate(PL0_STO, 0, temp_string_size_address);
-    this->symtab.insert_symbol("__TEMP_STRING_COUNTER__", VARIABLE, INTEGER, false);
-    auto temp_string_counter_address = this->symtab.get_symbol("__TEMP_STRING_COUNTER__").address;
-
-    auto rea_instruction_line = this->get_instruction_counter();
-    this->generate(PL0_INT, 0, 1);
-    this->generate(PL0_REA, 0, 0);
-    this->generate(PL0_LIT, 0, 0);
-    this->generate(PL0_LOD, 0, temp_string_size_address);
-    this->generate(PL0_LIT, 0, 5);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_PST, 0, 0);
-
-    this->generate(PL0_LIT, 0, 0);
-    this->generate(PL0_LOD, 0, temp_string_size_address);
-    this->generate(PL0_LIT, 0, 5);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_PLD, 0, 0);
-    this->generate(PL0_LIT, 0, 10);
-    this->generate(PL0_OPR, 0, PL0_NEQ);
-    auto jmc_instruction_line = this->get_instruction_counter();
-    this->generate(PL0_JMC, 0, 0);
-
-    this->generate(PL0_LOD, 0, temp_string_size_address);
-    this->generate(PL0_LIT, 0, 1);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_STO, 0, temp_string_size_address);
-
-    this->generate(PL0_JMP, 0, rea_instruction_line);
-    auto &jmc_instruction = this->get_instruction(jmc_instruction_line);
-    jmc_instruction.parameter = this->get_instruction_counter();
-
-    this->generate(PL0_INT, 0, 1);
-    this->generate(PL0_LOD, 0, temp_string_size_address);
-    this->generate(PL0_NEW, 0, 0);
-    this->generate(PL0_LIT, 0, 0);
-    this->generate(PL0_LOD, 0, temp_string_size_address);
-    this->generate(PL0_LIT, 0, 6);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_PST, 0, 0);
-
-    /* copy the string to the heap */
-    this->generate(PL0_LIT, 0, 0);
-    this->generate(PL0_LOD, 0, temp_string_size_address);
-    this->generate(PL0_LIT, 0, 6);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_PLD, 0, 0);
-    this->generate(PL0_LIT, 0, -1);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_LOD, 0, temp_string_size_address);
-    this->generate(PL0_STA, 0, 0);
-
-    this->generate(PL0_LOD, 0, temp_string_size_address);
-    this->generate(PL0_STO, 0, temp_string_counter_address);
-
-    /* copy untill the the temp string size address is 0 */
-    auto jump_to_start = this->get_instruction_counter();
-    this->generate(PL0_LIT, 0, 0);
-    this->generate(PL0_LOD, 0, temp_string_size_address);
-    this->generate(PL0_LIT, 0, 6);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_PLD, 0, 0);
-    this->generate(PL0_LOD, 0, temp_string_counter_address);
-    this->generate(PL0_LIT, 0, -1);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_LIT, 0, 0);
-    this->generate(PL0_LOD, 0, temp_string_counter_address);
-    this->generate(PL0_LIT, 0, 4);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_PLD, 0, 0);
-    this->generate(PL0_STA, 0, 0);
-
-    this->generate(PL0_LOD, 0, temp_string_counter_address);
-    this->generate(PL0_LIT, 0, -1);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_STO, 0, temp_string_counter_address);
-
-    this->generate(PL0_LOD, 0, temp_string_counter_address);
-    this->generate(PL0_LIT, 0, 0);
-    this->generate(PL0_OPR, 0, PL0_EQ);
-    this->generate(PL0_JMC, 0, jump_to_start);
-
-    this->generate(PL0_LIT, 0, 0);
-    this->generate(PL0_LOD, 0, temp_string_size_address);
-    this->generate(PL0_LIT, 0, 6);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_PLD, 0, 0);
-    this->generate(PL0_STO, 0, -1);
-    this->generate(PL0_RET, 0, 0);
-
-    this->symtab.remove_scope();
-}
-
-void InstructionsGenerator::gen_strcmp() {
-    this->symtab.insert_scope(0, ACTIVATION_RECORD_SIZE, true);
-    this->generate(PL0_INT, 0, ACTIVATION_RECORD_SIZE + 5);
-
-    this->symtab.insert_symbol("__TEMP_STR_1__", VARIABLE, INTEGER, false);
-    this->symtab.insert_symbol("__TEMP_STR_2__", VARIABLE, INTEGER, false);
-    this->symtab.insert_symbol("__TEMP_STR_SIZE__", VARIABLE, INTEGER, false);
-    this->symtab.insert_symbol("__TEMP_COUNTER__", VARIABLE, INTEGER, false);
-    this->symtab.insert_symbol("__TEMP_RESULT__", VARIABLE, INTEGER, false);
-
-    auto temp_str_1_address = this->symtab.get_symbol("__TEMP_STR_1__").address;
-    auto temp_str_2_address = this->symtab.get_symbol("__TEMP_STR_2__").address;
-    auto temp_str_size_address = this->symtab.get_symbol("__TEMP_STR_SIZE__").address;
-    auto temp_counter_address = this->symtab.get_symbol("__TEMP_COUNTER__").address;
-    auto temp_result_address = this->symtab.get_symbol("__TEMP_RESULT__").address;
-
-    this->generate(PL0_LOD, 0, -2);
-    this->generate(PL0_STO, 0, temp_str_1_address);
-    this->generate(PL0_LOD, 0, -3);
-    this->generate(PL0_STO, 0, temp_str_2_address);
-
-    /* look to heap for the -1 index and compare sizes */
-    this->generate(PL0_LOD, 0, temp_str_1_address);
-    this->generate(PL0_LIT, 0, -1);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_LDA, 0, 0);
-    this->generate(PL0_LOD, 0, temp_str_2_address);
-    this->generate(PL0_LIT, 0, -1);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_LDA, 0, 0);
-    this->generate(PL0_STO, 0, temp_str_size_address);
-    this->generate(PL0_LOD, 0, temp_str_size_address);
-    this->generate(PL0_OPR, 0, PL0_EQ);
-    this->generate(PL0_STO, 0, temp_result_address);
-    this->generate(PL0_LOD, 0, temp_result_address);
-    auto jmc_instruction_line = this->get_instruction_counter();
-    this->generate(PL0_JMC, 0, 0);
-
-    /* compare the strings byte by byte */
-    auto byte_by_byte_start = this->get_instruction_counter();
-    this->generate(PL0_LOD, 0, temp_str_size_address);
-    this->generate(PL0_LOD, 0, temp_counter_address);
-    this->generate(PL0_OPR, 0, PL0_NEQ);
-    this->generate(PL0_LIT, 0, 0);
-    this->generate(PL0_OPR, 0, PL0_EQ);
-    this->generate(PL0_STO, 0, temp_result_address);
-    this->generate(PL0_LOD, 0, temp_result_address);
-    this->generate(PL0_LIT, 0, 0);
-    this->generate(PL0_OPR, 0, PL0_EQ);
-    auto jmc_equal_instruction_line = this->get_instruction_counter();
-    this->generate(PL0_JMC, 0, 0);
-    this->generate(PL0_LOD, 0, temp_str_1_address);
-    this->generate(PL0_LOD, 0, temp_counter_address);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_LDA, 0, 0);
-    this->generate(PL0_LOD, 0, temp_str_2_address);
-    this->generate(PL0_LOD, 0, temp_counter_address);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_LDA, 0, 0);
-    this->generate(PL0_OPR, 0, PL0_NEQ);
-    this->generate(PL0_LIT, 0, 0);
-    this->generate(PL0_OPR, 0, PL0_EQ);
-    this->generate(PL0_STO, 0, temp_result_address);
-    this->generate(PL0_LOD, 0, temp_counter_address);
-    this->generate(PL0_LIT, 0, 1);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_STO, 0, temp_counter_address);
-    this->generate(PL0_LOD, 0, temp_result_address);
-    this->generate(PL0_LIT, 0, 0);
-    this->generate(PL0_OPR, 0, PL0_EQ);
-    this->generate(PL0_JMC, 0, byte_by_byte_start);
-
-    auto &jmc_instruction = this->get_instruction(jmc_instruction_line);
-    jmc_instruction.parameter = this->get_instruction_counter();
-    auto &jmc_equal_instruction = this->get_instruction(jmc_equal_instruction_line);
-    jmc_equal_instruction.parameter = this->get_instruction_counter();
-    this->generate(PL0_LOD, 0, temp_result_address);
-    this->generate(PL0_STO, 0, -1);
-    this->generate(PL0_RET, 0, 0);
-
-    this->symtab.remove_scope();
-}
-
-void InstructionsGenerator::gen_strcat() {
-    this->symtab.insert_scope(0, ACTIVATION_RECORD_SIZE, true);
-    this->generate(PL0_INT, 0, ACTIVATION_RECORD_SIZE + 7);
-
-    this->symtab.insert_symbol("__TEMP_STR_1__", VARIABLE, INTEGER, false);
-    this->symtab.insert_symbol("__TEMP_STR_2__", VARIABLE, INTEGER, false);
-    this->symtab.insert_symbol("__TEMP_STR_1_SIZE__", VARIABLE, INTEGER, false);
-    this->symtab.insert_symbol("__TEMP_STR_2_SIZE__", VARIABLE, INTEGER, false);
-    this->symtab.insert_symbol("__TEMP_RESULT__", VARIABLE, INTEGER, false);
-    this->symtab.insert_symbol("__TEMP_RESULT_SIZE_", VARIABLE, INTEGER, false);
-    this->symtab.insert_symbol("__TEMP_COUNTER__", VARIABLE, INTEGER, false);
-
-    auto temp_str_1_address = this->symtab.get_symbol("__TEMP_STR_1__").address;
-    auto temp_str_2_address = this->symtab.get_symbol("__TEMP_STR_2__").address;
-    auto temp_str_1_size_address = this->symtab.get_symbol("__TEMP_STR_1_SIZE__").address;
-    auto temp_str_2_size_address = this->symtab.get_symbol("__TEMP_STR_2_SIZE__").address;
-    auto temp_result_address = this->symtab.get_symbol("__TEMP_RESULT__").address;
-    auto temp_result_size_address = this->symtab.get_symbol("__TEMP_RESULT_SIZE_").address;
-    auto temp_counter_address = this->symtab.get_symbol("__TEMP_COUNTER__").address;
-
-    this->generate(PL0_LOD, 0, -3);
-    this->generate(PL0_STO, 0, temp_str_1_address);
-    this->generate(PL0_LOD, 0, -2);
-    this->generate(PL0_STO, 0, temp_str_2_address);
-
-    /* look to heap for the -1 index and store sizes */
-    this->generate(PL0_LOD, 0, temp_str_1_address);
-    this->generate(PL0_LIT, 0, -1);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_LDA, 0, 0);
-    this->generate(PL0_STO, 0, temp_str_1_size_address);
-    this->generate(PL0_LOD, 0, temp_str_2_address);
-    this->generate(PL0_LIT, 0, -1);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_LDA, 0, 0);
-    this->generate(PL0_STO, 0, temp_str_2_size_address);
-
-    /* calculate the size of the result string */
-    this->generate(PL0_LOD, 0, temp_str_1_size_address);
-    this->generate(PL0_LOD, 0, temp_str_2_size_address);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_STO, 0, temp_result_size_address);
-
-    /* allocate the result string */
-    this->generate(PL0_LOD, 0, temp_result_size_address);
-    this->generate(PL0_NEW, 0, 0);
-    this->generate(PL0_STO, 0, temp_result_address);
-    this->generate(PL0_LOD, 0, temp_result_address);
-    this->generate(PL0_LIT, 0, -1);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_LOD, 0, temp_result_size_address);
-    this->generate(PL0_STA, 0, 0);
-
-    /* copy the first string to the result string */
-    this->generate(PL0_LIT, 0, 0);
-    this->generate(PL0_STO, 0, temp_counter_address);
-
-    auto jump_to_start_str1 = this->get_instruction_counter();
-    this->generate(PL0_LOD, 0, temp_result_address);
-    this->generate(PL0_LOD, 0, temp_counter_address);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_LOD, 0, temp_str_1_address);
-    this->generate(PL0_LOD, 0, temp_counter_address);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_LDA, 0, 0);
-    this->generate(PL0_STA, 0, 0);
-    this->generate(PL0_LOD, 0, temp_counter_address);
-    this->generate(PL0_LIT, 0, 1);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_STO, 0, temp_counter_address);
-    this->generate(PL0_LOD, 0, temp_counter_address);
-    this->generate(PL0_LOD, 0, temp_str_1_size_address);
-    this->generate(PL0_OPR, 0, PL0_EQ);
-    this->generate(PL0_JMC, 0, jump_to_start_str1);
-
-    /* copy the second string to the result string */
-    this->generate(PL0_LIT, 0, 0);
-    this->generate(PL0_STO, 0, temp_counter_address);
-
-    auto jump_to_start_str2 = this->get_instruction_counter();
-    this->generate(PL0_LOD, 0, temp_result_address);
-    this->generate(PL0_LOD, 0, temp_counter_address);
-    this->generate(PL0_LOD, 0, temp_str_1_size_address);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_LOD, 0, temp_str_2_address);
-    this->generate(PL0_LOD, 0, temp_counter_address);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_LDA, 0, 0);
-    this->generate(PL0_STA, 0, 0);
-    this->generate(PL0_LOD, 0, temp_counter_address);
-    this->generate(PL0_LIT, 0, 1);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_STO, 0, temp_counter_address);
-    this->generate(PL0_LOD, 0, temp_counter_address);
-    this->generate(PL0_LOD, 0, temp_str_2_size_address);
-    this->generate(PL0_OPR, 0, PL0_EQ);
-    this->generate(PL0_JMC, 0, jump_to_start_str2);
-
-    this->generate(PL0_LOD, 0, temp_result_address);
-    this->generate(PL0_STO, 0, -1);
-    this->generate(PL0_RET, 0, 0);
-
-    this->symtab.remove_scope();
-}
-
-void InstructionsGenerator::gen_strlen() {
-    this->symtab.insert_scope(0, ACTIVATION_RECORD_SIZE, true);
-
-    this->generate(PL0_INT, 0, ACTIVATION_RECORD_SIZE);
-    this->generate(PL0_LOD, 0, -2);
-    this->generate(PL0_LIT, 0, -1);
-    this->generate(PL0_OPR, 0, PL0_ADD);
-    this->generate(PL0_LDA, 0, 0);
-    this->generate(PL0_STO, 0, -1);
-    this->generate(PL0_RET, 0, 0);
-
-    this->symtab.remove_scope();
-}
-
-
-void InstructionsGenerator::init_builtin_functions() {
-    this->symtab.init_builtin_functions();
-
-    if (this->used_builtin_functions.empty())
-        return;
-
-    if (std::find(this->used_builtin_functions.begin(), this->used_builtin_functions.end(), "print_num") != this->used_builtin_functions.end()) {
-        auto print_num_address = this->get_instruction_counter();
-        this->gen_print_num();
-        auto &print_num_symbol = this->symtab.get_symbol("print_num");
-        print_num_symbol.address = print_num_address;
-    }
-
-    if (std::find(this->used_builtin_functions.begin(), this->used_builtin_functions.end(), "read_num") != this->used_builtin_functions.end()) {
-        auto read_num_address = this->get_instruction_counter();
-        this->gen_read_num();
-        auto &read_num_symbol = this->symtab.get_symbol("read_num");
-        read_num_symbol.address = read_num_address;
-    }
-
-    if (std::find(this->used_builtin_functions.begin(), this->used_builtin_functions.end(), "print_str") != this->used_builtin_functions.end()) {
-        auto print_string_address = this->get_instruction_counter();
-        this->gen_print_string();
-        auto &print_string_symbol = this->symtab.get_symbol("print_str");
-        print_string_symbol.address = print_string_address;
-    }
-
-    if (std::find(this->used_builtin_functions.begin(), this->used_builtin_functions.end(), "read_str") != this->used_builtin_functions.end()) {
-        auto read_string_address = this->get_instruction_counter();
-        this->gen_read_string();
-        auto &read_string_symbol = this->symtab.get_symbol("read_str");
-        read_string_symbol.address = read_string_address;
-    }
-
-    if (std::find(this->used_builtin_functions.begin(), this->used_builtin_functions.end(), "strcmp") != this->used_builtin_functions.end()) {
-        auto strcmp_address = this->get_instruction_counter();
-        this->gen_strcmp();
-        auto &strcmp_symbol = this->symtab.get_symbol("strcmp");
-        strcmp_symbol.address = strcmp_address;
-    }
-
-    if (std::find(this->used_builtin_functions.begin(), this->used_builtin_functions.end(), "strcat") != this->used_builtin_functions.end()) {
-        auto strcat_address = this->get_instruction_counter();
-        this->gen_strcat();
-        auto &strcat_symbol = this->symtab.get_symbol("strcat");
-        strcat_symbol.address = strcat_address;
-    }
-
-    if (std::find(this->used_builtin_functions.begin(), this->used_builtin_functions.end(), "strlen") != this->used_builtin_functions.end()) {
-        auto strlen_address = this->get_instruction_counter();
-        this->gen_strlen();
-        auto &strlen_symbol = this->symtab.get_symbol("strlen");
-        strlen_symbol.address = strlen_address;
+void InstructionsGenerator::register_label(ASTNode *node) {
+    if (!node->label.empty()) {
+        auto jump_instruction_line = this->get_instruction_counter();
+        this->labels_to_line[node->label] = jump_instruction_line;
     }
 }
 
@@ -597,8 +71,9 @@ void InstructionsGenerator::generate() {
 
 void InstructionsGenerator::visit(ASTNodeBlock *node) {
     auto is_functional_block = this->symtab.get_current_scope().get_is_function_scope();
+
     auto sizeof_params = 0;
-    auto lod_address = -this->sizeof_params_stack.size() - 1;
+    auto lod_address = -this->sizeof_params_stack.size();
     std::vector<int> lod_addresses;
     if (is_functional_block) {
         for (auto &sizeof_param: this->sizeof_params_stack) {
@@ -607,8 +82,10 @@ void InstructionsGenerator::visit(ASTNodeBlock *node) {
         }
         this->sizeof_params_stack.clear();
     }
+
     auto number_of_variables = node->get_number_of_declared_variables();
     auto sizeof_variables = node->get_sizeof_variables();
+
     auto sum_sizeof = sizeof_params;
     for (auto &sizeof_variable: sizeof_variables)
         sum_sizeof += sizeof_variable;
@@ -620,68 +97,45 @@ void InstructionsGenerator::visit(ASTNodeBlock *node) {
         this->generate(PL0_STO, 0, sto_param_address++);
     }
 
-    auto sizes_map = std::map<int, ValueType>{
-        {0, VOID},
-        {1, INTEGER} /* TODO: add more sizes here, once they exist */
-    };
-    for (int i = 0; i < number_of_variables; i++)
-        this->symtab.insert_symbol("__DUMMY_" + std::to_string(i) + "__", VARIABLE, sizes_map[sizeof_variables[i]], false);
-    this->number_of_declared_variables.push_back(0);
+    this->symtab.allocate_symbols(number_of_variables, sizeof_variables);
 
     for (auto &statement: node->statements)
         statement->accept(this);
 
-    this->number_of_declared_variables.pop_back();
     this->generate(PL0_INT, 0, -sum_sizeof);
 }
 
 void InstructionsGenerator::visit(ASTNodeDeclVar *node) {
-    if (!node->label.empty()) {
-        auto jump_instruction_line = this->get_instruction_counter();
-        this->labels_to_line[node->label] = jump_instruction_line;
-    }
+    this->register_label(node);
 
-    std::string dummy_name = "__DUMMY_" + std::to_string(this->number_of_declared_variables.back()++) + "__";
-    this->symtab.change_symbol_name(dummy_name, node->name);
-    auto &symbol = this->symtab.get_symbol(node->name);
-    symbol.type = str_to_val_type(node->type);
+    auto &symbol = this->symtab.get_first_empty_symbol(sizeof_val_type(str_to_val_type(node->type)));
+    this->symtab.change_symbol_name(symbol.name, node->name);
+    symbol.type = {str_to_val_type(node->type), node->is_pointer, true};
     symbol.is_const = node->is_const;
-    symbol.is_pointer = node->is_pointer;
 
     if (node->expression) {
+        if (dynamic_cast<ASTNodeNew *>(node->expression))
+            symbol.type.is_pointing_to_stack = false;
+        else
+            symbol.type.is_pointing_to_stack = true;
+
         node->expression->accept(this);
 
-        if (dynamic_cast<ASTNodeReference *>(node->expression))
-            symbol.is_pointing_to_stack = true;
-        else if (dynamic_cast<ASTNodeNew *>(node->expression))
-            symbol.is_pointing_to_stack = false;
-        else if (auto binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(node->expression)) {
-            if (binary_operator->contains_reference())
-                symbol.is_pointing_to_stack = true;
-        }
-        else if (auto ternary_operator = dynamic_cast<ASTNodeTernaryOperator *>(node->expression)) {
-            if (dynamic_cast<ASTNodeReference *>(ternary_operator->true_expression) || dynamic_cast<ASTNodeReference *>(ternary_operator->false_expression))
-                symbol.is_pointing_to_stack = true;
-        }
-
-        auto address = this->symtab.get_symbol(node->name).address;
-        this->generate(PL0_STO, 0, address);
+        this->generate(PL0_STO, 0, symbol.address);
     }
 }
 
 void InstructionsGenerator::visit(ASTNodeDeclFunc *node) {
-    if (!node->label.empty()) {
-        auto jump_instruction_line = this->get_instruction_counter();
-        this->labels_to_line[node->label] = jump_instruction_line;
-    }
+    this->register_label(node);
 
     auto jump_over_func_instr_index = this->get_instruction_counter();
     this->generate(PL0_JMP, 0, 0);
     auto func_address = this->get_instruction_counter();
-    auto &symbol = this->symtab.get_symbol(node->name);
 
-    if (symbol.name == "") { /* Function was not yet declared */
-        this->symtab.insert_symbol(node->name, FUNCTION, node->return_type, false, func_address);
+    auto &symbol = this->symtab.get_symbol(node->name);
+    if (symbol.name.empty()) { /* Function was not yet declared */
+        Type type{str_to_val_type(node->return_type), false, false};
+        this->symtab.insert_symbol(node->name, FUNCTION, type, false, func_address);
         this->declared_functions[node->name] = func_address;
     } else { /* Function was earlier declared as a header only */
         symbol.address = func_address;
@@ -692,34 +146,36 @@ void InstructionsGenerator::visit(ASTNodeDeclFunc *node) {
 
     if (node->block) {
         this->symtab.insert_scope(0, ACTIVATION_RECORD_SIZE, true); /* Offset 3 for activation record */
+        auto &func_symbol = this->symtab.get_symbol(node->name);
         this->generate(PL0_INT, 0, ACTIVATION_RECORD_SIZE);
 
-        auto &decl_func_symbol = this->symtab.get_symbol(node->name);
+        auto sizeof_params_sum = 0;
         for (auto &parameter: node->parameters) {
-            this->symtab.insert_symbol(parameter->name, VARIABLE, str_to_val_type(parameter->type), false);
-            this->symtab.get_symbol(parameter->name).is_pointer = parameter->is_pointer;
-            decl_func_symbol.parameters.push_back(this->symtab.get_symbol(parameter->name));
+            Type type{str_to_val_type(parameter->type), parameter->is_pointer, false};
+            this->symtab.insert_symbol(parameter->name, VARIABLE, type, false);
+            auto &param_symbol = this->symtab.get_symbol(parameter->name);
+            func_symbol.parameters.push_back(param_symbol);
             this->sizeof_params_stack.push_back(sizeof_val_type(str_to_val_type(parameter->type)));
+            sizeof_params_sum += sizeof_val_type(str_to_val_type(parameter->type));
         }
 
+        this->sizeof_arguments_stack.push_back(sizeof_params_sum);
         this->sizeof_return_type_stack.push_back(sizeof_val_type(str_to_val_type(node->return_type)));
         node->block->accept(this);
         this->sizeof_return_type_stack.pop_back();
+        this->sizeof_arguments_stack.pop_back();
+
+        this->symtab.remove_scope();
     } else {
         this->generate(PL0_JMP, 0, 0);
     }
-
-    this->symtab.remove_scope();
 
     auto &jump_over_func_instr = this->get_instruction(jump_over_func_instr_index);
     jump_over_func_instr.parameter = this->get_instruction_counter();
 }
 
 void InstructionsGenerator::visit(ASTNodeIf *node) {
-    if (!node->label.empty()) {
-        auto jump_instruction_line = this->get_instruction_counter();
-        this->labels_to_line[node->label] = jump_instruction_line;
-    }
+    this->register_label(node);
 
     auto current_scope = this->symtab.get_current_scope();
     auto new_base = current_scope.get_address_base() + current_scope.get_address_offset();
@@ -751,10 +207,7 @@ void InstructionsGenerator::visit(ASTNodeIf *node) {
 }
 
 void InstructionsGenerator::visit(ASTNodeWhile *node) {
-    if (!node->label.empty()) {
-        auto jump_instruction_line = this->get_instruction_counter();
-        this->labels_to_line[node->label] = jump_instruction_line;
-    }
+    this->register_label(node);
 
     node->block->count_breaks_and_continues();
     node->break_number = node->block->break_number;
@@ -831,10 +284,7 @@ void InstructionsGenerator::visit(ASTNodeWhile *node) {
 }
 
 void InstructionsGenerator::visit(ASTNodeFor *node) {
-    if (!node->label.empty()) {
-        auto jump_instruction_line = this->get_instruction_counter();
-        this->labels_to_line[node->label] = jump_instruction_line;
-    }
+    this->register_label(node);
 
     node->block->count_breaks_and_continues();
     node->break_number = node->block->break_number;
@@ -844,24 +294,26 @@ void InstructionsGenerator::visit(ASTNodeFor *node) {
     auto new_base = current_scope.get_address_base() + current_scope.get_address_offset();
     this->symtab.insert_scope(new_base, 0, false);
 
-    int sizeof_init = 0;
+    uint32_t sizeof_init = 0;
     if (auto decl_var = dynamic_cast<ASTNodeDeclVar *>(node->init)) {
-        sizeof_init = sizeof_val_type(str_to_val_type(decl_var->type));
+        Type type{str_to_val_type(decl_var->type), decl_var->is_pointer, true};
+        sizeof_init = type.size;
         this->generate(PL0_INT, 0, sizeof_init);
-        this->symtab.insert_symbol("__DUMMY_0__", VARIABLE, decl_var->type, false);
-        this->number_of_declared_variables.push_back(0);
+        this->symtab.allocate_symbols(1, {sizeof_init});
         node->init->accept(this);
-        this->number_of_declared_variables.pop_back();
     }
-    else if (dynamic_cast<ASTNodeAssignExpression *>(node->init))
+    else
         node->init->accept(this);
 
     auto condition_instruction_line = this->get_instruction_counter();
     node->condition->accept(this);
+
     auto jmc_instruction_line = this->get_instruction_counter();
     this->generate(PL0_JMC, 0, 0);
+
     node->block->accept(this);
     node->increment->accept(this);
+
     this->generate(PL0_JMP, 0, condition_instruction_line);
     auto &jmc_instruction = this->get_instruction(jmc_instruction_line);
     jmc_instruction.parameter = this->get_instruction_counter();
@@ -873,10 +325,7 @@ void InstructionsGenerator::visit(ASTNodeFor *node) {
 }
 
 void InstructionsGenerator::visit(ASTNodeBreakContinue *node) {
-    if (!node->label.empty()) {
-        auto jump_instruction_line = this->get_instruction_counter();
-        this->labels_to_line[node->label] = jump_instruction_line;
-    }
+    this->register_label(node);
 
     auto jmp_instruction_line = this->get_instruction_counter();
     this->generate(PL0_JMP, 0, 0);
@@ -887,25 +336,20 @@ void InstructionsGenerator::visit(ASTNodeBreakContinue *node) {
 }
 
 void InstructionsGenerator::visit(ASTNodeReturn *node) {
-    if (!node->label.empty()) {
-        auto jump_instruction_line = this->get_instruction_counter();
-        this->labels_to_line[node->label] = jump_instruction_line;
-    }
+    this->register_label(node);
 
     if (node->expression)
         node->expression->accept(this);
 
     auto sizeof_return_type = this->sizeof_return_type_stack.back();
-    this->generate(PL0_STO, 0, -sizeof_return_type);
+    auto sizeof_arguments = this->sizeof_arguments_stack.back();
+    this->generate(PL0_STO, 0, -sizeof_return_type - sizeof_arguments);
 
     this->generate(PL0_RET, 0, 0);
 }
 
 void InstructionsGenerator::visit(ASTNodeGoto *node) {
-    if (!node->label.empty()) {
-        auto jump_instruction_line = this->get_instruction_counter();
-        this->labels_to_line[node->label] = jump_instruction_line;
-    }
+    this->register_label(node);
 
     auto jump_instruction_line = this->get_instruction_counter();
     this->generate(PL0_JMP, 0, 0);
@@ -913,11 +357,7 @@ void InstructionsGenerator::visit(ASTNodeGoto *node) {
 }
 
 void InstructionsGenerator::visit(ASTNodeExpressionStatement *node) {
-    if (!node->label.empty()) {
-        auto jump_instruction_line = this->get_instruction_counter();
-        this->labels_to_line[node->label] = jump_instruction_line;
-    }
-
+    this->register_label(node);
     node->expression->accept(this);
 }
 
@@ -937,8 +377,12 @@ void InstructionsGenerator::visit(ASTNodeBoolLiteral *node) {
 }
 
 void InstructionsGenerator::visit(ASTNodeStringLiteral *node) {
-    this->symtab.insert_symbol("__TEMP_STRING__", VARIABLE, STRING, false);
-    auto string_literal_address = this->symtab.get_symbol("__TEMP_STRING__").address;
+    this->symtab.insert_symbol("__TEMP_STRING__", VARIABLE, string_t, false);
+    auto string_literal_address = this->symtab.get_symbol("__TEMP_STRING__").address + is_array_of_strings;
+    /* String literals are fun to play with */
+    /* For real tho, +1 because if array of strings is used, this basically writes over our computed address, since
+     * the adress will only be LIT as literal, this variable will overwrite it as it is the next "free" address */
+    this->generate(PL0_INT, 0, 1);
     this->generate(PL0_LIT, 0, node->value.length());
     this->generate(PL0_NEW, 0, 0);
     this->generate(PL0_STO, 0, string_literal_address);
@@ -957,6 +401,7 @@ void InstructionsGenerator::visit(ASTNodeStringLiteral *node) {
         this->generate(PL0_STA, 0, 0);
     }
 
+    this->generate(PL0_INT, 0, -1);
     this->generate(PL0_LOD, 0, string_literal_address);
     this->symtab.remove_symbol("__TEMP_STRING__");
 }
@@ -965,39 +410,33 @@ void InstructionsGenerator::visit(ASTNodeAssignExpression *node) {
     if (node->lvalue) {
         if (auto dereference = dynamic_cast<ASTNodeDereference *>(node->lvalue)) {
             auto &symbol = this->symtab.get_symbol(dereference->identifier);
-            if (symbol.is_pointing_to_stack) {
+            if (symbol.type.is_pointing_to_stack) {
                 node->expression->accept(this);
                 auto level = this->symtab.get_symbol_level(dereference->identifier);
                 this->generate(PL0_LIT, 0, level);
                 node->lvalue->accept(this);
                 this->generate(PL0_PST, 0, 0);
             } else {
+                if (symbol.type.type == string_t.type)
+                    is_array_of_strings = true;
                 node->lvalue->accept(this);
                 node->expression->accept(this);
                 this->generate(PL0_STA, 0, 0);
+                is_array_of_strings = false;
             }
         }
     } else {
         auto &symbol = this->symtab.get_symbol(node->name);
 
+        if (dynamic_cast<ASTNodeNew *>(node->expression))
+            symbol.type.is_pointing_to_stack = false;
+        else
+            symbol.type.is_pointing_to_stack = true;
+
         node->expression->accept(this);
 
-        if (dynamic_cast<ASTNodeReference *>(node->expression))
-            symbol.is_pointing_to_stack = true;
-        else if (dynamic_cast<ASTNodeNew *>(node->expression))
-            symbol.is_pointing_to_stack = false;
-        else if (auto binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(node->expression)) {
-            if (binary_operator->contains_reference())
-                symbol.is_pointing_to_stack = true;
-        }
-        else if (auto ternary_operator = dynamic_cast<ASTNodeTernaryOperator *>(node->expression)) {
-            if (dynamic_cast<ASTNodeReference *>(ternary_operator->true_expression) || dynamic_cast<ASTNodeReference *>(ternary_operator->false_expression))
-                symbol.is_pointing_to_stack = true;
-        }
-
-        auto address = symbol.address;
         auto level = this->symtab.get_symbol_level(node->name);
-        this->generate(PL0_STO, level, address);
+        this->generate(PL0_STO, level, symbol.address);
     }
 }
 
@@ -1027,40 +466,39 @@ void InstructionsGenerator::visit(ASTNodeBinaryOperator *node) {
             auto &symbol = this->symtab.get_symbol(left_id->name);
             node->left->accept(this);
             node->right->accept(this);
-            this->generate(PL0_LIT, 0, sizeof_val_type(symbol.type));
+            this->generate(PL0_LIT, 0, symbol.type.size);
             this->generate(PL0_OPR, 0, PL0_MUL);
             this->generate(PL0_OPR, 0, OperatorsTable.find(node->op)->second);
-            return;
         }
         else if (auto right_id = dynamic_cast<ASTNodeIdentifier *>(node->right)) {
             auto &symbol = this->symtab.get_symbol(right_id->name);
             node->right->accept(this);
             node->left->accept(this);
-            this->generate(PL0_LIT, 0, sizeof_val_type(symbol.type));
+            this->generate(PL0_LIT, 0, symbol.type.size);
             this->generate(PL0_OPR, 0, PL0_MUL);
             this->generate(PL0_OPR, 0, OperatorsTable.find(node->op)->second);
-            return;
         }
-
+        else {
+            node->left->accept(this);
+            node->right->accept(this);
+            this->generate(PL0_OPR, 0, OperatorsTable.find(node->op)->second);
+        }
+    }
+    else {
         node->left->accept(this);
         node->right->accept(this);
-        this->generate(PL0_OPR, 0, OperatorsTable.find(node->op)->second);
-        return;
-    }
 
-    node->left->accept(this);
-    node->right->accept(this);
-
-    if (node->op == "&&") { /* AND: 1 * 1 = 1, 1 * 0 = 0, 0 * 1 = 0, 0 * 0 = 0 */
-        this->generate(PL0_OPR, 0, PL0_MUL);
-        this->generate(PL0_LIT, 0, 0);
-        this->generate(PL0_OPR, 0, PL0_NEQ);
-    } else if (node->op == "||") { /* OR: 1 + 1 = 2, 1 + 0 = 1, 0 + 1 = 1, 0 + 0 = 0 */
-        this->generate(PL0_OPR, 0, PL0_ADD);
-        this->generate(PL0_LIT, 0, 0);
-        this->generate(PL0_OPR, 0, PL0_NEQ);
-    } else {
-        this->generate(PL0_OPR, 0, OperatorsTable.find(node->op)->second);
+        if (node->op == "&&") { /* AND: 1 * 1 = 1, 1 * 0 = 0, 0 * 1 = 0, 0 * 0 = 0 */
+            this->generate(PL0_OPR, 0, PL0_MUL);
+            this->generate(PL0_LIT, 0, 0);
+            this->generate(PL0_OPR, 0, PL0_NEQ);
+        } else if (node->op == "||") { /* OR: 1 + 1 = 2, 1 + 0 = 1, 0 + 1 = 1, 0 + 0 = 0 */
+            this->generate(PL0_OPR, 0, PL0_ADD);
+            this->generate(PL0_LIT, 0, 0);
+            this->generate(PL0_OPR, 0, PL0_NEQ);
+        } else {
+            this->generate(PL0_OPR, 0, OperatorsTable.find(node->op)->second);
+        }
     }
 }
 
@@ -1083,26 +521,34 @@ void InstructionsGenerator::visit(ASTNodeCallFunc *node) {
     auto &symbol = this->symtab.get_symbol(node->name);
     auto level = this->symtab.get_symbol_level(node->name);
 
+    this->generate(PL0_INT, 0, symbol.type.size);
+
     for (auto &argument: node->arguments)
         argument->accept(this);
 
-    this->generate(PL0_INT, 0, sizeof_val_type(symbol.type));
     this->generate(PL0_CAL, level, symbol.address);
+
+    auto sizeof_params = 0;
+    for (auto &parameter: symbol.parameters)
+        sizeof_params += parameter.type.size;
+
+    this->generate(PL0_INT, 0, -sizeof_params);
 }
 
 void InstructionsGenerator::visit(ASTNodeNew *node) {
-    this->symtab.insert_symbol("__TEMP_NEW_SIZE__", VARIABLE, str_to_val_type(node->type), false);
+    Type type{str_to_val_type(node->type), false, false};
+    this->symtab.insert_symbol("__TEMP_NEW_SIZE__", VARIABLE, type, false);
     auto temp_new_size_address = this->symtab.get_symbol("__TEMP_NEW_SIZE__").address;
 
     this->generate(PL0_INT, 0, 2);
     node->expression->accept(this);
-    this->generate(PL0_LIT, 0, sizeof_val_type(str_to_val_type(node->type)));
+    this->generate(PL0_LIT, 0, type.size);
     this->generate(PL0_OPR, 0, PL0_MUL);
     this->generate(PL0_STO, 0, temp_new_size_address);
     this->generate(PL0_LOD, 0, temp_new_size_address);
     this->generate(PL0_NEW, 0, 0);
 
-    this->symtab.insert_symbol("__TEMP_NEW__", VARIABLE, str_to_val_type(node->type), false);
+    this->symtab.insert_symbol("__TEMP_NEW__", VARIABLE, type, false);
     auto temp_new_address = this->symtab.get_symbol("__TEMP_NEW__").address;
 
     this->generate(PL0_STO, 0, temp_new_address);
@@ -1111,6 +557,8 @@ void InstructionsGenerator::visit(ASTNodeNew *node) {
     this->generate(PL0_OPR, 0, PL0_ADD);
     this->generate(PL0_LOD, 0, temp_new_size_address);
     this->generate(PL0_STA, 0, 0);
+
+    this->generate(PL0_INT, 0, -2);
 
     this->generate(PL0_LOD, 0, temp_new_address);
 

@@ -17,6 +17,8 @@ private:
     std::vector<std::pair<std::string, int>> used_labels;
     std::map<std::string, bool> defined_variables;
 
+    void register_label(ASTNode *node);
+
 public:
 
     explicit SemanticAnalyzer(ASTNodeBlock* global_block);

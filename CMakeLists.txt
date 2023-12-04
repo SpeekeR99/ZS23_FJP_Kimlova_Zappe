@@ -28,6 +28,7 @@ add_executable(
         src/analysis/SyntaxAnalyzer.h
         src/synthesis/SemanticAnalyzer.cpp
         src/synthesis/SemanticAnalyzer.h
+        src/synthesis/BuiltinFunctions.cpp
         src/synthesis/InstructionsGenerator.cpp
         src/synthesis/InstructionsGenerator.h
         ${LEXER_H_OUT}
