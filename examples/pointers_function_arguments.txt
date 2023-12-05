@@ -8,8 +8,8 @@ void sum(int a, int b, int ^result) {
 }
 
 int main() {
-    int a = read_num();
-    int b = read_num();
+    int a = 5;
+    int b = 10;
     int ^c = new(int, 1);
 
     sum(a, b, c);

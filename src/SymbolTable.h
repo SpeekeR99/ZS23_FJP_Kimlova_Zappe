@@ -55,6 +55,7 @@ typedef struct SymbolTableRecord {
     bool is_const;
     std::uint32_t address;
     std::vector<struct SymbolTableRecord> parameters;
+    struct SymbolTableRecord *pointee = nullptr;
 
     bool operator==(const SymbolTableRecord &other) const;
 } SymbolTableRecord;

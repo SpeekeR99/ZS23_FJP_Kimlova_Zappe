@@ -49,8 +49,14 @@ void InstructionsGenerator::generate() {
     this->init_builtin_functions();
     this->get_instruction(0).parameter = this->get_instruction_counter();
 
-    auto int_instruction_line = this->get_instruction_counter();
-    this->generate(PL0_INT, 0, 0);
+    auto number_of_variables = this->global_block->get_number_of_declared_variables();
+    auto temp_sizeof_variables = this->global_block->get_sizeof_variables();
+    auto sizeof_variables = 0;
+    for (auto &temp_sizeof_variable: temp_sizeof_variables)
+        sizeof_variables += temp_sizeof_variable;
+
+    this->generate(PL0_INT, 0, sizeof_variables + ACTIVATION_RECORD_SIZE);
+    this->symtab.allocate_symbols(number_of_variables, temp_sizeof_variables);
 
     for (auto &statement: this->global_block->statements)
         statement->accept(this);
@@ -59,9 +65,6 @@ void InstructionsGenerator::generate() {
         auto &goto_instruction = this->get_instruction(value);
         goto_instruction.parameter = this->labels_to_line[key];
     }
-
-    auto sizeof_global_variables = symtab.get_sizeof_variables();
-    this->get_instruction(int_instruction_line).parameter = sizeof_global_variables + ACTIVATION_RECORD_SIZE;
 
     auto main_address = symtab.get_symbol("main").address;
     this->generate(PL0_INT, 0, 1);
@@ -118,6 +121,14 @@ void InstructionsGenerator::visit(ASTNodeDeclVar *node) {
             symbol.type.is_pointing_to_stack = false;
         else
             symbol.type.is_pointing_to_stack = true;
+
+        if (auto *ref = dynamic_cast<ASTNodeReference *>(node->expression)) {
+            auto &ref_symbol = this->symtab.get_symbol(ref->identifier);
+            symbol.pointee = &ref_symbol;
+        }
+        else {
+            symbol.pointee = nullptr;
+        }
 
         node->expression->accept(this);
 
@@ -412,7 +423,9 @@ void InstructionsGenerator::visit(ASTNodeAssignExpression *node) {
             auto &symbol = this->symtab.get_symbol(dereference->identifier);
             if (symbol.type.is_pointing_to_stack) {
                 node->expression->accept(this);
-                auto level = this->symtab.get_symbol_level(dereference->identifier);
+                auto level = 0;
+                if (symbol.pointee)
+                    level = this->symtab.get_symbol_level(symbol.pointee->name);
                 this->generate(PL0_LIT, 0, level);
                 node->lvalue->accept(this);
                 this->generate(PL0_PST, 0, 0);
@@ -432,6 +445,14 @@ void InstructionsGenerator::visit(ASTNodeAssignExpression *node) {
             symbol.type.is_pointing_to_stack = false;
         else
             symbol.type.is_pointing_to_stack = true;
+
+        if (auto *ref = dynamic_cast<ASTNodeReference *>(node->expression)) {
+            auto &ref_symbol = this->symtab.get_symbol(ref->identifier);
+            symbol.pointee = &ref_symbol;
+        }
+        else {
+            symbol.pointee = nullptr;
+        }
 
         node->expression->accept(this);
 
