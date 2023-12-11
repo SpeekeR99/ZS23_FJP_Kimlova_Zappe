@@ -11,7 +11,7 @@ Jednoducha rozsireni (1b kazde):
   1 Kazdy dalsi typ cyklu (DO WHILE) (FOR) (UNTIL DO) (REPEAT UNTIL)        (DONE)
   2 Else vetev                                                              (DONE)
   3 Datovy typ boolean + operace s nim                                      (DONE)
-  4 Datovy typ real + operace s nim                                         (NOT IMPLEMENTED)
+  4 Datovy typ real + operace s nim                                         (DONE)
   5 Datovy typ string + operace s nim                                       (DONE)
   6 Rozvetvena podminka (switch, case)                                      (NOT IMPLEMENTED)
   7 Nasobne prirazeni                                                       (NOT IMPLEMENTED)
