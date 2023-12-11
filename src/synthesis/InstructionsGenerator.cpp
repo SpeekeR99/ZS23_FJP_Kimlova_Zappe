@@ -132,7 +132,8 @@ void InstructionsGenerator::visit(ASTNodeDeclVar *node) {
 
         node->expression->accept(this);
 
-        this->generate(PL0_STO, 0, symbol.address);
+        for (auto i = symbol.type.size; i > 0; i--)
+            this->generate(PL0_STO, 0, symbol.address + (i - 1));
     }
 }
 
@@ -354,7 +355,8 @@ void InstructionsGenerator::visit(ASTNodeReturn *node) {
 
     auto sizeof_return_type = this->sizeof_return_type_stack.back();
     auto sizeof_arguments = this->sizeof_arguments_stack.back();
-    this->generate(PL0_STO, 0, -sizeof_return_type - sizeof_arguments);
+    for (auto i = sizeof_return_type; i > 0; i--)
+        this->generate(PL0_STO, 0, -sizeof_return_type - sizeof_arguments + (i - 1));
 
     this->generate(PL0_RET, 0, 0);
 }
@@ -373,13 +375,34 @@ void InstructionsGenerator::visit(ASTNodeExpressionStatement *node) {
 }
 
 void InstructionsGenerator::visit(ASTNodeIdentifier *node) {
-    auto address = this->symtab.get_symbol(node->name).address;
+    auto &symbol = this->symtab.get_symbol(node->name);
+    auto address = symbol.address;
     auto level = this->symtab.get_symbol_level(node->name);
-    this->generate(PL0_LOD, level, address);
+
+    for (auto i = 0; i < symbol.type.size; i++)
+        this->generate(PL0_LOD, level, address + i);
 }
 
 void InstructionsGenerator::visit(ASTNodeIntLiteral *node) {
     this->generate(PL0_LIT, 0, node->value);
+}
+
+void InstructionsGenerator::visit(ASTNodeFloatLiteral *node) {
+    auto whole_part = (int) node->value;
+    auto fractional_part = std::to_string(node->value);
+
+    /* Erase everything up to the first dot */
+    fractional_part.erase(0, fractional_part.find('.') + 1);
+    while (fractional_part[fractional_part.length() - 1] == '0')
+        fractional_part.erase(fractional_part.length() - 1, 1);
+    if (fractional_part.empty())
+        fractional_part = "0";
+
+    auto fractional_part_int = std::stoi(fractional_part);
+
+    this->generate(PL0_LIT, 0, whole_part);
+    this->generate(PL0_LIT, 0, fractional_part_int);
+    this->generate(PL0_ITR, 0, 0);
 }
 
 void InstructionsGenerator::visit(ASTNodeBoolLiteral *node) {
@@ -457,7 +480,8 @@ void InstructionsGenerator::visit(ASTNodeAssignExpression *node) {
         node->expression->accept(this);
 
         auto level = this->symtab.get_symbol_level(node->name);
-        this->generate(PL0_STO, level, symbol.address);
+        for (auto i = symbol.type.size; i > 0; i--)
+            this->generate(PL0_STO, level, symbol.address + (i - 1));
     }
 }
 
@@ -509,17 +533,35 @@ void InstructionsGenerator::visit(ASTNodeBinaryOperator *node) {
         node->left->accept(this);
         node->right->accept(this);
 
-        if (node->op == "&&") { /* AND: 1 * 1 = 1, 1 * 0 = 0, 0 * 1 = 0, 0 * 0 = 0 */
-            this->generate(PL0_OPR, 0, PL0_MUL);
-            this->generate(PL0_LIT, 0, 0);
-            this->generate(PL0_OPR, 0, PL0_NEQ);
-        } else if (node->op == "||") { /* OR: 1 + 1 = 2, 1 + 0 = 1, 0 + 1 = 1, 0 + 0 = 0 */
-            this->generate(PL0_OPR, 0, PL0_ADD);
-            this->generate(PL0_LIT, 0, 0);
-            this->generate(PL0_OPR, 0, PL0_NEQ);
-        } else {
-            this->generate(PL0_OPR, 0, OperatorsTable.find(node->op)->second);
+        bool is_float = node->is_float_arithmetic;
+        if (auto left_id = dynamic_cast<ASTNodeIdentifier *>(node->left)) {
+            auto &symbol = this->symtab.get_symbol(left_id->name);
+            if (symbol.type.type == float_t.type)
+                is_float = true;
         }
+        if (auto right_id = dynamic_cast<ASTNodeIdentifier *>(node->right)) {
+            auto &symbol = this->symtab.get_symbol(right_id->name);
+            if (symbol.type.type == float_t.type)
+                is_float = true;
+        }
+        node->propagate_float();
+        is_float = is_float || node->is_float_arithmetic;
+
+        if (!is_float) {
+            if (node->op == "&&") { /* AND: 1 * 1 = 1, 1 * 0 = 0, 0 * 1 = 0, 0 * 0 = 0 */
+                this->generate(PL0_OPR, 0, PL0_MUL);
+                this->generate(PL0_LIT, 0, 0);
+                this->generate(PL0_OPR, 0, PL0_NEQ);
+            } else if (node->op == "||") { /* OR: 1 + 1 = 2, 1 + 0 = 1, 0 + 1 = 1, 0 + 0 = 0 */
+                this->generate(PL0_OPR, 0, PL0_ADD);
+                this->generate(PL0_LIT, 0, 0);
+                this->generate(PL0_OPR, 0, PL0_NEQ);
+            } else {
+                this->generate(PL0_OPR, 0, OperatorsTable.find(node->op)->second);
+            }
+        }
+        else /* It doesn't even make sense to AND or OR floats */
+            this->generate(PL0_OPF, 0, OperatorsTable.find(node->op)->second);
     }
 }
 

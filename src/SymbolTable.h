@@ -13,7 +13,8 @@ enum ValueType {
     VOID,
     INTEGER,
     BOOLEAN,
-    STRING
+    STRING,
+    FLOAT
 };
 
 ValueType str_to_val_type(const std::string &str);
@@ -23,7 +24,8 @@ enum ValueTypeSize {
     VOID_SIZE = 0,
     INTEGER_SIZE = 1,
     BOOLEAN_SIZE = 1,
-    STRING_SIZE = 1
+    STRING_SIZE = 1,
+    FLOAT_SIZE = 2
 };
 
 int sizeof_val_type(ValueType type);
@@ -75,10 +77,14 @@ static Type bool_t_ptr = {BOOLEAN, pointer_level, is_pointing_to_stack};
 static Type string_t = {STRING, 0, false};
 template<uint32_t pointer_level, bool is_pointing_to_stack = false>
 static Type string_t_ptr = {STRING, pointer_level, is_pointing_to_stack};
+static Type float_t = {FLOAT, 0, false};
+template<uint32_t pointer_level, bool is_pointing_to_stack = false>
+static Type float_t_ptr = {FLOAT, pointer_level, is_pointing_to_stack};
 
 static std::map<uint32_t, Type> size_representant = {
         {0, void_t},
         {1, int_t},
+        {2, float_t},
 };
 
 static SymbolTableRecord undefined_record{"", VARIABLE, Type(VOID, false, false), false, 0};

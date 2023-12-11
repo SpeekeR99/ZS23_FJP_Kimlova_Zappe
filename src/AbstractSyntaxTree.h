@@ -19,6 +19,7 @@ class ASTNodeIdentifier;
 class ASTNodeIntLiteral;
 class ASTNodeBoolLiteral;
 class ASTNodeStringLiteral;
+class ASTNodeFloatLiteral;
 class ASTNodeAssignExpression;
 class ASTNodeTernaryOperator;
 class ASTNodeBinaryOperator;
@@ -49,6 +50,7 @@ public:
     virtual void visit(ASTNodeIntLiteral *node) = 0;
     virtual void visit(ASTNodeBoolLiteral *node) = 0;
     virtual void visit(ASTNodeStringLiteral *node) = 0;
+    virtual void visit(ASTNodeFloatLiteral *node) = 0;
     virtual void visit(ASTNodeAssignExpression *node) = 0;
     virtual void visit(ASTNodeTernaryOperator *node) = 0;
     virtual void visit(ASTNodeBinaryOperator *node) = 0;
@@ -365,6 +367,20 @@ public:
     }
 };
 
+class ASTNodeFloatLiteral : public ASTNodeExpression {
+public:
+    int line;
+    float value;
+
+    explicit ASTNodeFloatLiteral(float value, int line) : value(value), line(line) {
+        /* Empty */
+    }
+
+    void accept(ASTVisitor *visitor) override {
+        visitor->visit(this);
+    }
+};
+
 class ASTNodeNew : public ASTNodeExpression {
 public:
     int line;
@@ -497,9 +513,10 @@ public:
     ASTNodeExpression *right;
     std::string op;
     bool is_pointer_arithmetic = false;
+    bool is_float_arithmetic = false;
 
     ASTNodeBinaryOperator(ASTNodeExpression *left, const std::string &op, ASTNodeExpression *right, int line) : left(left), op(op), right(right), line(line) {
-        /* Empty */
+        this->is_float_arithmetic_check();
     }
 
     ~ASTNodeBinaryOperator() override {
@@ -509,6 +526,8 @@ public:
 
     bool contains_reference();
     std::string find_dereference();
+    void is_float_arithmetic_check();
+    void propagate_float();
 
     void accept(ASTVisitor *visitor) override {
         visitor->visit(this);

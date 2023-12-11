@@ -42,6 +42,7 @@ public:
     void visit(ASTNodeIntLiteral *node) override;
     void visit(ASTNodeBoolLiteral *node) override;
     void visit(ASTNodeStringLiteral *node) override;
+    void visit(ASTNodeFloatLiteral *node) override;
     void visit(ASTNodeAssignExpression *node) override;
     void visit(ASTNodeTernaryOperator *node) override;
     void visit(ASTNodeBinaryOperator *node) override;

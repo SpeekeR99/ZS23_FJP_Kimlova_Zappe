@@ -88,6 +88,34 @@ std::string ASTNodeBinaryOperator::find_dereference() {
     return result;
 }
 
+void ASTNodeBinaryOperator::is_float_arithmetic_check() {
+    if (auto *left_binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(this->left)) {
+        left_binary_operator->is_float_arithmetic_check();
+        if (left_binary_operator->is_float_arithmetic)
+            this->is_float_arithmetic = true;
+    } else if (dynamic_cast<ASTNodeFloatLiteral *>(this->left)) {
+        this->is_float_arithmetic = true;
+    }
+    if (auto *right_binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(this->right)) {
+        right_binary_operator->is_float_arithmetic_check();
+        if (right_binary_operator->is_float_arithmetic)
+            this->is_float_arithmetic = true;
+    } else if (dynamic_cast<ASTNodeFloatLiteral *>(this->right)) {
+        this->is_float_arithmetic = true;
+    }
+}
+
+void ASTNodeBinaryOperator::propagate_float() {
+    if (auto *left_binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(this->left)) {
+        left_binary_operator->propagate_float();
+        this->is_float_arithmetic = left_binary_operator->is_float_arithmetic;
+    }
+    if (auto *right_binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(this->right)) {
+        right_binary_operator->propagate_float();
+        this->is_float_arithmetic = right_binary_operator->is_float_arithmetic;
+    }
+}
+
 void ASTNodeDereference::what_do_i_dereference() {
     if (auto *id = dynamic_cast<ASTNodeIdentifier *>(this->expression)) {
         this->identifier = id->name;

@@ -25,6 +25,9 @@ enum InstructionIndex {
     PL0_STA,
     PL0_PLD,
     PL0_PST,
+    PL0_ITR,
+    PL0_RTI,
+    PL0_OPF,
     PL0_NUM_OF_INSTRUCTIONS
 };
 
@@ -75,7 +78,10 @@ static const char * const InstructionsTable[] = {
     [PL0_LDA] = "LDA",
     [PL0_STA] = "STA",
     [PL0_PLD] = "PLD",
-    [PL0_PST] = "PST"
+    [PL0_PST] = "PST",
+    [PL0_ITR] = "ITR",
+    [PL0_RTI] = "RTI",
+    [PL0_OPF] = "OPF"
 };
 
 typedef struct Instruction {
@@ -142,6 +148,7 @@ public:
     void visit(ASTNodeIntLiteral *node) override;
     void visit(ASTNodeBoolLiteral *node) override;
     void visit(ASTNodeStringLiteral *node) override;
+    void visit(ASTNodeFloatLiteral *node) override;
     void visit(ASTNodeAssignExpression *node) override;
     void visit(ASTNodeTernaryOperator *node) override;
     void visit(ASTNodeBinaryOperator *node) override;

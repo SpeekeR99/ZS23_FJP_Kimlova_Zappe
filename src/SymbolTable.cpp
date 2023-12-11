@@ -19,6 +19,8 @@ ValueType str_to_val_type(const std::string &str) {
         return BOOLEAN;
     else if (str == "string")
         return STRING;
+    else if (str == "float")
+        return FLOAT;
     else {
         return UNDEFINED_TYPE;
     }
@@ -33,6 +35,8 @@ int sizeof_val_type(ValueType type) {
         return BOOLEAN_SIZE;
     else if (type == STRING)
         return STRING_SIZE;
+    else if (type == FLOAT)
+        return FLOAT_SIZE;
     else {
         return UNDEFINED_TYPE_SIZE;
     }

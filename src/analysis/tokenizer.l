@@ -20,11 +20,12 @@
 
 block_comment_start     \/\*
 block_comment_end       \*\/
-type                    (int|bool|string|void)
+type                    (int|bool|string|float|void)
 id                      ([a-z_][a-zA-Z0-9_]*)
 int_literal             (([0-9])+)
 bool_literal            (true|false)
 string_literal          \"(\\.|[^"\\])*\"
+float_literal           (([0-9])+\.([0-9])*)
 
 %%
 
@@ -34,6 +35,7 @@ string_literal          \"(\\.|[^"\\])*\"
 {int_literal}           { HANDLE_COLUMN; if (!inside_comment) { SAVE_TOKEN; return INT_LITERAL; } }
 {bool_literal}          { HANDLE_COLUMN; if (!inside_comment) { SAVE_TOKEN; return BOOL_LITERAL; } }
 {string_literal}        { HANDLE_COLUMN; if (!inside_comment) { SAVE_TOKEN; return STRING_LITERAL; } }
+{float_literal}         { HANDLE_COLUMN; if (!inside_comment) { SAVE_TOKEN; return FLOAT_LITERAL; } }
 ;                       { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(SEMICOLON); } }
 const                   { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(CONSTANT); } }
 =                       { HANDLE_COLUMN; if (!inside_comment) { return TOKEN(ASSIGN_OP); } }
