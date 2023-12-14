@@ -75,13 +75,15 @@ void InstructionsGenerator::generate() {
 void InstructionsGenerator::visit(ASTNodeBlock *node) {
     auto is_functional_block = this->symtab.get_current_scope().get_is_function_scope();
 
-    auto sizeof_params = 0;
-    auto lod_address = -this->sizeof_params_stack.size();
+    auto sizeof_params_sum = 0;
+    for (auto &sizeof_param: this->sizeof_params_stack)
+        sizeof_params_sum += sizeof_param;
+    auto lod_address = -sizeof_params_sum;
     std::vector<int> lod_addresses;
     if (is_functional_block) {
         for (auto &sizeof_param: this->sizeof_params_stack) {
-            sizeof_params += sizeof_param;
-            lod_addresses.push_back(lod_address++);
+            for (auto i = 0; i < sizeof_param; i++)
+                lod_addresses.push_back(lod_address++);
         }
         this->sizeof_params_stack.clear();
     }
@@ -89,7 +91,7 @@ void InstructionsGenerator::visit(ASTNodeBlock *node) {
     auto number_of_variables = node->get_number_of_declared_variables();
     auto sizeof_variables = node->get_sizeof_variables();
 
-    auto sum_sizeof = sizeof_params;
+    auto sum_sizeof = sizeof_params_sum;
     for (auto &sizeof_variable: sizeof_variables)
         sum_sizeof += sizeof_variable;
     this->generate(PL0_INT, 0, sum_sizeof);

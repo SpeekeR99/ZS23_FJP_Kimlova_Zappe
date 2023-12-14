@@ -90,8 +90,13 @@ void SemanticAnalyzer::visit(ASTNodeDeclVar *node) {
         exit(1);
     }
 
-    if (node->type == "void") {
+    if (str_to_val_type(node->type) == void_t.type) {
         std::cerr << "Semantic error: variable \"" << node->name << "\" cannot be of type void, error on line " << node->line << std::endl;
+        exit(1);
+    }
+
+    if (str_to_val_type(node->type) == float_t.type && node->is_pointer) {
+        std::cerr << "Semantic error: float pointer is not supported, due to PL/0 instructions set limitations, error on line " << node->line << std::endl;
         exit(1);
     }
 
