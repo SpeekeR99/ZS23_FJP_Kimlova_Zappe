@@ -1,6 +1,9 @@
 int main() {
-    int a = read_num();
-    print_num(a);
+    int a = read_int();
+    print_int(a);
+
+    float b = read_float();
+    print_float(b);
 
     return 0;
 }

@@ -1,13 +1,15 @@
 #include "SymbolTable.h"
 
 std::vector<std::string> SymbolTable::builtin_functions = {
-        "print_num",
-        "read_num",
+        "print_int",
+        "read_int",
         "print_str",
         "read_str",
         "strcmp",
         "strcat",
         "strlen",
+        "print_float",
+        "read_float",
 };
 
 ValueType str_to_val_type(const std::string &str) {
@@ -117,12 +119,12 @@ SymbolTable::SymbolTable() : table() {
 }
 
 void SymbolTable::init_builtin_functions() {
-    this->insert_symbol("print_num", FUNCTION, void_t, false, 0);
-    auto &print_num = this->get_symbol("print_num");
-    auto print_param = SymbolTableRecord{"__print_num_param__", VARIABLE, int_t, false};
+    this->insert_symbol("print_int", FUNCTION, void_t, false, 0);
+    auto &print_num = this->get_symbol("print_int");
+    auto print_param = SymbolTableRecord{"__print_int_param__", VARIABLE, int_t, false};
     print_num.parameters.emplace_back(print_param);
 
-    this->insert_symbol("read_num", FUNCTION, int_t, false, 0);
+    this->insert_symbol("read_int", FUNCTION, int_t, false, 0);
 
     this->insert_symbol("print_str", FUNCTION, void_t, false, 0);
     auto &print_str = this->get_symbol("print_str");
@@ -149,6 +151,13 @@ void SymbolTable::init_builtin_functions() {
     auto &strlen = this->get_symbol("strlen");
     print_param = SymbolTableRecord{"__strlen_param__", VARIABLE, string_t, false};
     strlen.parameters.emplace_back(print_param);
+
+    this->insert_symbol("print_float", FUNCTION, void_t, false, 0);
+    auto &print_float = this->get_symbol("print_float");
+    print_param = SymbolTableRecord{"__print_float_param__", VARIABLE, float_t, false};
+    print_float.parameters.emplace_back(print_param);
+
+    this->insert_symbol("read_float", FUNCTION, float_t, false, 0);
 }
 
 SymbolTable::~SymbolTable() = default;

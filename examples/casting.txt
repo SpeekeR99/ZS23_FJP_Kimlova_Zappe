@@ -1,0 +1,14 @@
+float double(float x) {
+    return x * (float) 2;
+}
+
+const int dva = 2;
+
+int main() {
+    float pi = 3.1415;
+    int dva = 2;
+
+    int vysledek = (int) double(pi);
+
+    return 0;
+}

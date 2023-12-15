@@ -6,18 +6,18 @@ void InstructionsGenerator::init_builtin_functions() {
     if (this->used_builtin_functions.empty())
         return;
 
-    if (std::find(this->used_builtin_functions.begin(), this->used_builtin_functions.end(), "print_num") != this->used_builtin_functions.end()) {
-        auto print_num_address = this->get_instruction_counter();
-        this->gen_print_num();
-        auto &print_num_symbol = this->symtab.get_symbol("print_num");
-        print_num_symbol.address = print_num_address;
+    if (std::find(this->used_builtin_functions.begin(), this->used_builtin_functions.end(), "print_int") != this->used_builtin_functions.end()) {
+        auto print_int_address = this->get_instruction_counter();
+        this->gen_print_int();
+        auto &print_int_symbol = this->symtab.get_symbol("print_int");
+        print_int_symbol.address = print_int_address;
     }
 
-    if (std::find(this->used_builtin_functions.begin(), this->used_builtin_functions.end(), "read_num") != this->used_builtin_functions.end()) {
-        auto read_num_address = this->get_instruction_counter();
-        this->gen_read_num();
-        auto &read_num_symbol = this->symtab.get_symbol("read_num");
-        read_num_symbol.address = read_num_address;
+    if (std::find(this->used_builtin_functions.begin(), this->used_builtin_functions.end(), "read_int") != this->used_builtin_functions.end()) {
+        auto read_int_address = this->get_instruction_counter();
+        this->gen_read_int();
+        auto &read_int_symbol = this->symtab.get_symbol("read_int");
+        read_int_symbol.address = read_int_address;
     }
 
     if (std::find(this->used_builtin_functions.begin(), this->used_builtin_functions.end(), "print_str") != this->used_builtin_functions.end()) {
@@ -54,9 +54,39 @@ void InstructionsGenerator::init_builtin_functions() {
         auto &strlen_symbol = this->symtab.get_symbol("strlen");
         strlen_symbol.address = strlen_address;
     }
+
+    if (std::find(this->used_builtin_functions.begin(), this->used_builtin_functions.end(), "print_float") != this->used_builtin_functions.end()) {
+        /* print_float uses print_int */
+        if (std::find(this->used_builtin_functions.begin(), this->used_builtin_functions.end(), "print_int") == this->used_builtin_functions.end()) {
+            auto print_int_address = this->get_instruction_counter();
+            this->gen_print_int();
+            auto &print_int_symbol = this->symtab.get_symbol("print_int");
+            print_int_symbol.address = print_int_address;
+        }
+
+        auto print_float_address = this->get_instruction_counter();
+        this->gen_print_float();
+        auto &print_float_symbol = this->symtab.get_symbol("print_float");
+        print_float_symbol.address = print_float_address;
+    }
+
+    if (std::find(this->used_builtin_functions.begin(), this->used_builtin_functions.end(), "read_float") != this->used_builtin_functions.end()) {
+        /* read_float uses read_int */
+        if (std::find(this->used_builtin_functions.begin(), this->used_builtin_functions.end(), "read_int") == this->used_builtin_functions.end()) {
+            auto read_int_address = this->get_instruction_counter();
+            this->gen_read_int();
+            auto &read_int_symbol = this->symtab.get_symbol("read_int");
+            read_int_symbol.address = read_int_address;
+        }
+
+        auto read_float_address = this->get_instruction_counter();
+        this->gen_read_float();
+        auto &read_float_symbol = this->symtab.get_symbol("read_float");
+        read_float_symbol.address = read_float_address;
+    }
 }
 
-void InstructionsGenerator::gen_print_num() {
+void InstructionsGenerator::gen_print_int() {
     this->symtab.insert_scope(0, ACTIVATION_RECORD_SIZE, true);
 
     this->generate(PL0_INT, 0, ACTIVATION_RECORD_SIZE + 2);
@@ -128,7 +158,7 @@ void InstructionsGenerator::gen_print_num() {
     this->symtab.remove_scope();
 }
 
-void InstructionsGenerator::gen_read_num() {
+void InstructionsGenerator::gen_read_int() {
     /* Initialize the scope and the activation record */
     this->symtab.insert_scope(0, ACTIVATION_RECORD_SIZE, true);
     this->generate(PL0_INT, 0, ACTIVATION_RECORD_SIZE + 2);
@@ -530,6 +560,101 @@ void InstructionsGenerator::gen_strlen() {
     this->generate(PL0_OPR, 0, PL0_ADD);
     this->generate(PL0_LDA, 0, 0);
     this->generate(PL0_STO, 0, -2);
+    this->generate(PL0_RET, 0, 0);
+
+    this->symtab.remove_scope();
+}
+
+void InstructionsGenerator::gen_print_float() {
+    this->symtab.insert_scope(0, ACTIVATION_RECORD_SIZE, true);
+
+    this->generate(PL0_INT, 0, ACTIVATION_RECORD_SIZE + 2);
+    this->symtab.insert_symbol("__TEMP_FLOAT__", VARIABLE, float_t, false);
+    auto temp_float_address = this->symtab.get_symbol("__TEMP_FLOAT__").address;
+    this->generate(PL0_LOD, 0, -1);
+    this->generate(PL0_STO, 0, temp_float_address + 1);
+    this->generate(PL0_LOD, 0, -2);
+    this->generate(PL0_STO, 0, temp_float_address);
+    this->generate(PL0_LOD, 0, temp_float_address);
+    this->generate(PL0_LOD, 0, temp_float_address + 1);
+
+    auto print_int_address = this->symtab.get_symbol("print_int").address;
+    this->generate(PL0_RTI, 0, 1);
+    this->generate(PL0_CAL, 0, print_int_address);
+
+    this->generate(PL0_LIT, 0, 46);
+    this->generate(PL0_WRI, 0, 0);
+
+    this->generate(PL0_LOD, 0, temp_float_address);
+    this->generate(PL0_LOD, 0, temp_float_address + 1);
+    this->generate(PL0_RTI, 0, 0);
+    this->generate(PL0_CAL, 0, print_int_address);
+
+    this->generate(PL0_RET, 0, 0);
+
+    this->symtab.remove_scope();
+}
+
+void InstructionsGenerator::gen_read_float() {
+    this->symtab.insert_scope(0, ACTIVATION_RECORD_SIZE, true);
+
+    this->generate(PL0_INT, 0, ACTIVATION_RECORD_SIZE + 2);
+
+    /* Two temporary variables are used to read the number and store the result */
+    this->symtab.insert_symbol("__TEMP_READ__", VARIABLE, int_t, false);
+    this->symtab.insert_symbol("__TEMP_RESULT__", VARIABLE, int_t, false);
+
+    /* Result is initialized to 0 */
+    auto temp_read_address = this->symtab.get_symbol("__TEMP_READ__").address;
+    auto temp_result_address = this->symtab.get_symbol("__TEMP_RESULT__").address;
+    this->generate(PL0_LIT, 0, 0);
+    this->generate(PL0_STO, 0, temp_result_address);
+
+    /* Read instruction address is the address to jump to (loop) */
+    auto rea_instruction_line = this->get_instruction_counter();
+    this->generate(PL0_REA, 0, 0);
+    this->generate(PL0_STO, 0, temp_read_address);
+
+    /* Check if the read number is equal to 46 (ASCII for '.') */
+    this->generate(PL0_LOD, 0, temp_read_address);
+    this->generate(PL0_LIT, 0, 46);
+    this->generate(PL0_OPR, 0, PL0_NEQ);
+
+    /* If it is not new line continue reading and adding to the result */
+    auto jmc_instruction_line = this->get_instruction_counter();
+    this->generate(PL0_JMC, 0, 0);
+
+    /* Load last read digit */
+    this->generate(PL0_LOD, 0, temp_read_address);
+    /* Subtract '0' to get the actual number */
+    this->generate(PL0_LIT, 0, 48);
+    this->generate(PL0_OPR, 0, PL0_SUB);
+    /* Multiply the result by 10 */
+    this->generate(PL0_LOD, 0, temp_result_address);
+    this->generate(PL0_LIT, 0, 10);
+    this->generate(PL0_OPR, 0, PL0_MUL);
+    /* Add the last read digit */
+    this->generate(PL0_OPR, 0, PL0_ADD);
+    /* Store the result */
+    this->generate(PL0_STO, 0, temp_result_address);
+    this->generate(PL0_JMP, 0, rea_instruction_line);
+
+    /* Jump here if the read number is equal to 10 (ASCII for newline) */
+    auto &jmc_instruction = this->get_instruction(jmc_instruction_line);
+    jmc_instruction.parameter = this->get_instruction_counter();
+
+    /* Load the result to be at the top of the stack */
+    this->generate(PL0_LOD, 0, temp_result_address);
+    this->generate(PL0_INT, 0, 1);
+
+    auto read_int_address = this->symtab.get_symbol("read_int").address;
+    this->generate(PL0_CAL, 0, read_int_address);
+
+    this->generate(PL0_ITR, 0, 0);
+
+    this->generate(PL0_STO, 0, -1);
+    this->generate(PL0_STO, 0, -2);
+
     this->generate(PL0_RET, 0, 0);
 
     this->symtab.remove_scope();

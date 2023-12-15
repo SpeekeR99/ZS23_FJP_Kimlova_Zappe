@@ -578,8 +578,83 @@ void InstructionsGenerator::visit(ASTNodeUnaryOperator *node) {
     }
 }
 
-void InstructionsGenerator::visit(ASTNodeCast *node) { /* TODO: cast is not implemented yet */
-    /* Empty */
+void InstructionsGenerator::visit(ASTNodeCast *node) {
+    ValueType casting_from = undefined_t.type;
+
+    if (auto id = dynamic_cast<ASTNodeIdentifier *>(node->expression)) {
+        auto &symbol = this->symtab.get_symbol(id->name);
+        casting_from = symbol.type.type;
+    }
+    else if (dynamic_cast<ASTNodeIntLiteral *>(node->expression)) {
+        casting_from = int_t.type;
+    }
+    else if (dynamic_cast<ASTNodeFloatLiteral *>(node->expression)) {
+        casting_from = float_t.type;
+    }
+    else if (dynamic_cast<ASTNodeBoolLiteral *>(node->expression)) {
+        casting_from = bool_t.type;
+    }
+    else if (auto bin_op = dynamic_cast<ASTNodeBinaryOperator *>(node->expression)) {
+        auto is_float = bin_op->is_float_arithmetic;
+        if (auto left_id = dynamic_cast<ASTNodeIdentifier *>(bin_op->left)) {
+            auto &symbol = this->symtab.get_symbol(left_id->name);
+            if (symbol.type.type == float_t.type)
+                is_float = true;
+        }
+        if (auto right_id = dynamic_cast<ASTNodeIdentifier *>(bin_op->right)) {
+            auto &symbol = this->symtab.get_symbol(right_id->name);
+            if (symbol.type.type == float_t.type)
+                is_float = true;
+        }
+        bin_op->propagate_float();
+        is_float = is_float || bin_op->is_float_arithmetic;
+
+        if (is_float)
+            casting_from = float_t.type;
+        else
+            casting_from = int_t.type;
+    }
+    else if (auto un_op = dynamic_cast<ASTNodeUnaryOperator *>(node->expression)) {
+        if (un_op->op == "-")
+            casting_from = int_t.type;
+        else
+            casting_from = bool_t.type;
+    }
+    else if (auto call_func = dynamic_cast<ASTNodeCallFunc *>(node->expression)) {
+        auto &symbol = this->symtab.get_symbol(call_func->name);
+        casting_from = symbol.type.type;
+    }
+    else if (auto dereference = dynamic_cast<ASTNodeDereference *>(node->expression)) {
+        auto &symbol = this->symtab.get_symbol(dereference->identifier);
+        casting_from = symbol.type.type;
+    }
+    else if (auto reference = dynamic_cast<ASTNodeReference *>(node->expression)) {
+        auto &symbol = this->symtab.get_symbol(reference->identifier);
+        casting_from = symbol.type.type;
+    }
+    else if (auto sizeof_op = dynamic_cast<ASTNodeSizeof *>(node->expression)) {
+        casting_from = str_to_val_type(sizeof_op->type);
+    }
+
+    if (str_to_val_type(node->type) == float_t.type && casting_from != float_t.type) {
+        node->expression->accept(this);
+        this->generate(PL0_LIT, 0, 0);
+        this->generate(PL0_ITR, 0, 0);
+    }
+    else if (str_to_val_type(node->type) == int_t.type && casting_from == float_t.type) {
+        node->expression->accept(this);
+        this->generate(PL0_RTI, 0, 1);
+    }
+    else if (str_to_val_type(node->type) == bool_t.type && casting_from == int_t.type) {
+        node->expression->accept(this);
+        this->generate(PL0_LIT, 0, 0);
+        this->generate(PL0_OPR, 0, PL0_NEQ);
+    }
+    else if (str_to_val_type(node->type) == bool_t.type && casting_from == float_t.type) {
+        this->generate(PL0_RTI, 0, 1);
+        this->generate(PL0_LIT, 0, 0);
+        this->generate(PL0_OPR, 0, PL0_NEQ);
+    }
 }
 
 void InstructionsGenerator::visit(ASTNodeCallFunc *node) {

@@ -114,13 +114,15 @@ private:
     void register_label(ASTNode *node);
 
     void init_builtin_functions();
-    void gen_print_num();
-    void gen_read_num();
+    void gen_print_int();
+    void gen_read_int();
     void gen_print_string();
     void gen_read_string();
     void gen_strcmp();
     void gen_strcat();
     void gen_strlen();
+    void gen_print_float();
+    void gen_read_float();
 
     [[nodiscard]] Instruction &get_instruction(std::uint32_t index);
 

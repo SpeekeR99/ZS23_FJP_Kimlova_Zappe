@@ -55,3 +55,16 @@ Nase rozsireni (?b):
   7 Break a Continue                                                        (DONE)
   8 Navratova hodnota z main je zachycena v globalnim bloku                 (DONE)
   9 Vyreseni builtin funkci na zacatku instrukci                            (DONE)
+ 10 Moznost pretypovavani                                                   (DONE)
+
+Nase rozsireni interpreteru (?b):
+  1 Vylepseni o instrukce ITR, RTI, OPF
+    (implementace, vysvetlovac, napoveda)                                   (DONE)
+  2 Vylepseni o nenutnost cislovani instrukci
+    (lepe se pise rucne pseudo assembly PL/0)                               (DONE)
+  3 Vstupni pole muze prijimat CR, LF (ukoncovaci znaky vstupu)             (DONE)
+  4 Kompletni preklad napovedy                                              (DONE)
+  5 Oprava napovedy, kde PLD a PST jsou popsany chybne
+    (prohozena adresa a level)                                              (DONE)
+  6 Oprava I/O jako celku, kde WRI napr. mazalo znak ze vstupu              (DONE)
+  7 Oprava I/O pri supsteni pomoci "run", nikoliv pouze pri krokovani       (DONE)

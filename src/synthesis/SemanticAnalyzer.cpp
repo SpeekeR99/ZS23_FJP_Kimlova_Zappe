@@ -452,8 +452,18 @@ void SemanticAnalyzer::visit(ASTNodeUnaryOperator *node) {
     }
 }
 
-void SemanticAnalyzer::visit(ASTNodeCast *node) { /* TODO: cast is not implemented yet */
-    /* Empty */
+void SemanticAnalyzer::visit(ASTNodeCast *node) {
+    if (str_to_val_type(node->type) == string_t.type) {
+        std::cerr << "Semantic error: cannot cast to string, error on line " << node->line << std::endl;
+        exit(1);
+    }
+
+    if (dynamic_cast<ASTNodeStringLiteral *>(node->expression)) {
+        std::cerr << "Semantic error: cannot cast string literal, error on line " << node->line << std::endl;
+        exit(1);
+    }
+
+    node->expression->accept(this);
 }
 
 void SemanticAnalyzer::visit(ASTNodeCallFunc *node) {
