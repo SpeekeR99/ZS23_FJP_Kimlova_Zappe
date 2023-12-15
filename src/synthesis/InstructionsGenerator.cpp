@@ -151,11 +151,19 @@ void InstructionsGenerator::visit(ASTNodeDeclFunc *node) {
         Type type{str_to_val_type(node->return_type), false, false};
         this->symtab.insert_symbol(node->name, FUNCTION, type, false, func_address);
         this->declared_functions[node->name] = func_address;
+
+        auto &func_symbol = this->symtab.get_symbol(node->name);
+        for (auto &parameter: node->parameters) {
+            func_symbol.parameters.push_back({parameter->name, VARIABLE, {str_to_val_type(parameter->type), parameter->is_pointer, false}, false});
+        }
     } else { /* Function was earlier declared as a header only */
         symbol.address = func_address;
         auto jump_instr_index = this->declared_functions[node->name];
         auto &jump_instr = this->get_instruction(jump_instr_index);
         jump_instr.parameter = func_address;
+
+        auto &func_symbol = this->symtab.get_symbol(node->name);
+        func_symbol.parameters.clear();
     }
 
     if (node->block) {

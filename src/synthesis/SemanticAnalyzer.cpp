@@ -216,6 +216,17 @@ void SemanticAnalyzer::visit(ASTNodeDeclFunc *node) {
         this->symtab.remove_scope();
     }
     else {
+        this->symtab.insert_scope(0, 0, true); /* No need to care about addressing here */
+
+        for (auto &parameter: node->parameters) {
+            auto &decl_func_symbol = this->symtab.get_symbol(node->name);
+            parameter->accept(this);
+            decl_func_symbol.parameters.push_back(this->symtab.get_symbol(parameter->name));
+            defined_variables[parameter->name] = true;
+        }
+
+        this->symtab.remove_scope();
+
         this->declared_functions[node->name] = false;
     }
 }
