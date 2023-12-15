@@ -56,6 +56,9 @@ Nase rozsireni (?b):
   8 Navratova hodnota z main je zachycena v globalnim bloku                 (DONE)
   9 Vyreseni builtin funkci na zacatku instrukci                            (DONE)
  10 Moznost pretypovavani                                                   (DONE)
+ 11 Implicitni pretypovavani intu na floaty, kdyz se jedna o binarni
+    operaci, kde jeden z operandu je float
+    (je mozne implicitni pretypovani prebit explicitnim pretypovanim)       (DONE)
 
 Nase rozsireni interpreteru (?b):
   1 Vylepseni o instrukce ITR, RTI, OPF
