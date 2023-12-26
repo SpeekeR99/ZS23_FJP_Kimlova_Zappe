@@ -28,6 +28,15 @@ void Optimizer::optimize_instructions(std::vector<Instruction> &instructions) {
                 }
             }
         }
+
+        if (instruction.instruction == "JMP" || instruction.instruction == "JMC" || instruction.instruction == "CAL") {
+            auto &jump_destination = instructions[instruction.parameter];
+            while(jump_destination.instruction == "JMP") {
+                instruction.parameter = jump_destination.parameter;
+                jump_destination.instruction = "DELETE";
+                jump_destination = instructions[instruction.parameter];
+            }
+        }
     }
 
     instructions.erase(std::remove_if(instructions.begin(), instructions.end(), [](const Instruction &instruction) {

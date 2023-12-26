@@ -20,10 +20,10 @@ int main(int argc, char **argv) {
 
     auto optimizations_enabled = true;
     if (argc == 3) {
-        if (std::string(argv[2]) == "-o=0") {
+        if (std::string(argv[2]) == "-o=0" || std::string(argv[1]) == "-o=0") {
             std::cout << "Optimizations disabled" << std::endl;
             optimizations_enabled = false;
-        } else if (std::string(argv[2]) == "-o=1") {
+        } else if (std::string(argv[2]) == "-o=1" || std::string(argv[1]) == "-o=1") {
             std::cout << "Optimizations enabled" << std::endl;
         } else {
             print_usage(argv[0]);
