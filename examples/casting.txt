@@ -1,7 +1,7 @@
 const int dva = 2;
 
 float double(float x) {
-    return x * dva;
+    return x * (float) dva;
 }
 
 int main() {
@@ -12,7 +12,7 @@ int main() {
 
     print_str("\n");
 
-    float test = 9. / dva;
+    float test = 9. / (float) dva;
     print_float(test);
 
     return 0;

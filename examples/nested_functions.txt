@@ -4,21 +4,22 @@ void outer();
 
 int b = 3;
 
-void main() {
+int main() {
     a = 10;
     int b = 5;
-    outer();
-    return;
+    print_int(a);
+    a = outer();
+    print_int(a);
+    return 0;
 }
 
-void outer() {
+int outer() {
     int c = 5;
-    void inner() {
+    int inner() {
         a = 25;
         int d = c + 1;
         c = a * b;
-        return;
+        return d;
     }
-    inner();
-    return;
+    return inner() + c;
 }

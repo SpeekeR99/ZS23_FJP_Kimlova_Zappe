@@ -32,9 +32,9 @@ int main() {
     int rec = recursive_fib(n);
     int it = iterative_fib(n);
 
-    print_num(rec);
+    print_int(rec);
     print_str("\n");
-    print_num(it);
+    print_int(it);
 
     return 0;
 }

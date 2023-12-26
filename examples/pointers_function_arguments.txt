@@ -14,9 +14,9 @@ int main() {
 
     sum(a, b, c);
 
-    print_num(^(c));
+    print_int(^(c));
     print_str("\n");
-    print_num(global_result);
+    print_int(global_result);
 
     return 0;
 }
