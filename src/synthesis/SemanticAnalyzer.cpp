@@ -12,7 +12,7 @@ std::vector<std::string> SemanticAnalyzer::get_used_builtin_functions() {
     return this->used_builtin_functions;
 }
 
-void SemanticAnalyzer::register_label(ASTNode *node) {
+void SemanticAnalyzer::register_label(ASTNodeStatement *node) {
     if (!node->label.empty()) {
         if (std::find(this->declared_labels.begin(), this->declared_labels.end(), node->label) != this->declared_labels.end()) {
             std::cerr << "Semantic error: label \"" << node->label << "\" already declared, error on line " << node->line << std::endl;

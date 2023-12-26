@@ -31,6 +31,8 @@ add_executable(
         src/synthesis/BuiltinFunctions.cpp
         src/synthesis/InstructionsGenerator.cpp
         src/synthesis/InstructionsGenerator.h
+        src/synthesis/Optimizer.cpp
+        src/synthesis/Optimizer.h
         ${LEXER_H_OUT}
         ${LEXER_OUT}
         ${PARSER_H_OUT}

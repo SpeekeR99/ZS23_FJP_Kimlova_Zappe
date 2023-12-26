@@ -2,32 +2,17 @@
 
 #include "AbstractSyntaxTree.h"
 #include "SymbolTable.h"
+#include "InstructionsGenerator.h"
 
-class SemanticAnalyzer : public ASTVisitor {
+class Optimizer : public ASTVisitor {
 private:
-    ASTNodeBlock* global_block;
-    SymbolTable symtab;
-    std::map<std::string, bool> declared_functions;
-    std::map<std::string, int> problematic_forward_referenced_functions;
-    std::map<std::string, bool> assigned_constants;
-    std::vector<std::pair<std::string, int>> current_functions;
-    int current_loop_level;
-    std::vector<std::string> used_builtin_functions;
-    std::vector<std::string> declared_labels;
-    std::vector<std::pair<std::string, int>> used_labels;
-    std::map<std::string, bool> defined_variables;
-    std::vector<Type> return_types;
-
-    void register_label(ASTNodeStatement *node);
-    void check_expr_type(Type type, ASTNodeExpression *expr, int line, bool is_assignment_check = true);
 
 public:
-    explicit SemanticAnalyzer(ASTNodeBlock* global_block);
-    ~SemanticAnalyzer() override;
+    Optimizer();
+    ~Optimizer() override;
 
-    void analyze();
-
-    std::vector<std::string> get_used_builtin_functions();
+    void optimize_ast(ASTNodeBlock* global_block);
+    void optimize_instructions(std::vector<Instruction> &instructions);
 
     void visit(ASTNodeBlock *node) override;
     void visit(ASTNodeDeclVar *node) override;

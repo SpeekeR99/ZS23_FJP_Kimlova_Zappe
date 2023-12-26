@@ -111,7 +111,7 @@ private:
     void generate(const std::string &instruction, int level, int parameter);
     void generate(InstructionIndex instruction, int level, int parameter);
 
-    void register_label(ASTNode *node);
+    void register_label(ASTNodeStatement *node);
 
     void init_builtin_functions();
     void gen_print_int();

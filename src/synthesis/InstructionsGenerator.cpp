@@ -34,7 +34,7 @@ void InstructionsGenerator::set_instruction_counter(std::uint32_t counter) {
     this->instruction_counter = counter;
 }
 
-void InstructionsGenerator::register_label(ASTNode *node) {
+void InstructionsGenerator::register_label(ASTNodeStatement *node) {
     if (!node->label.empty()) {
         auto jump_instruction_line = this->get_instruction_counter();
         this->labels_to_line[node->label] = jump_instruction_line;
