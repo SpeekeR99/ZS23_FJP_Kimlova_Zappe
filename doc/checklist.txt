@@ -59,6 +59,7 @@ Nase rozsireni (?b):
  11 Implicitni pretypovavani intu na floaty, kdyz se jedna o binarni
     operaci, kde jeden z operandu je float
     (je mozne implicitni pretypovani prebit explicitnim pretypovanim)       (DONE)
+ 12 Jednoduchy type checking prirazeni a return statementu                  (DONE)
 
 Nase rozsireni interpreteru (?b):
   1 Vylepseni o instrukce ITR, RTI, OPF
@@ -71,3 +72,9 @@ Nase rozsireni interpreteru (?b):
     (prohozena adresa a level)                                              (DONE)
   6 Oprava I/O jako celku, kde WRI napr. mazalo znak ze vstupu              (DONE)
   7 Oprava I/O pri supsteni pomoci "run", nikoliv pouze pri krokovani       (DONE)
+
+
+Poznamka:
+Nefunguji float pointery z duvodu jak funguji instrukce co pracuji dynamicky se stackem, resp. co pracuji s heapem
+Tyto instrukce ocekavaji na stacku ADRESU a VALUE, ale co kdyz VALUE je na 2 bunky (float), tedy ADRESA VALUE VALUE
+Nechce se mi zavadet nove instrukce, ktere by pracovali s float pointery => osetreno jako semanticka chyba

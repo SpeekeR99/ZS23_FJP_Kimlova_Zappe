@@ -57,6 +57,68 @@ void SemanticAnalyzer::analyze() {
     }
 }
 
+void SemanticAnalyzer::check_expr_type(Type type, ASTNodeExpression *expr, int line, bool is_assignment_check) {
+    /* If type is not string, but expression is string literal or string variable or function returning string, error */
+    if (type.type != string_t.type && dynamic_cast<ASTNodeStringLiteral *>(expr)) {
+        if (is_assignment_check)
+            std::cerr << "Semantic error: cannot assign string literal to non-string variable, error on line " << line << std::endl;
+        else /* Return type check */
+            std::cerr << "Semantic error: function declared as returning non-string -> cannot return string, error on line " << line << std::endl;
+        exit(1);
+    }
+    if (type.type != string_t.type && dynamic_cast<ASTNodeIdentifier *>(expr)) {
+        auto &symbol = this->symtab.get_symbol(dynamic_cast<ASTNodeIdentifier *>(expr)->name);
+        if (symbol.type.type == string_t.type) {
+            if (is_assignment_check)
+                std::cerr << "Semantic error: cannot assign string variable to non-string variable, error on line " << line << std::endl;
+            else /* Return type check */
+                std::cerr << "Semantic error: function declared as returning non-string -> cannot return string, error on line " << line << std::endl;
+            exit(1);
+        }
+    }
+    if (type.type != string_t.type && dynamic_cast<ASTNodeCallFunc *>(expr)) {
+        auto &symbol = this->symtab.get_symbol(dynamic_cast<ASTNodeCallFunc *>(expr)->name);
+        if (symbol.type.type == string_t.type) {
+            if (is_assignment_check)
+                std::cerr << "Semantic error: cannot assign function returning string to non-string variable, error on line " << line << std::endl;
+            else /* Return type check */
+                std::cerr << "Semantic error: function declared as returning non-string -> cannot return string, error on line " << line << std::endl;
+            exit(1);
+        }
+    }
+
+    /* If type is string, but expression is not string literal or string variable or function returning string, error */
+    if (type.type == string_t.type) {
+        if (!dynamic_cast<ASTNodeStringLiteral *>(expr) && !dynamic_cast<ASTNodeIdentifier *>(expr) && !dynamic_cast<ASTNodeCallFunc *>(expr)) {
+            if (is_assignment_check)
+                std::cerr << "Semantic error: cannot assign non-string expression to string variable, error on line " << line << std::endl;
+            else /* Return type check */
+                std::cerr << "Semantic error: function declared as returning string -> cannot return non-string, error on line " << line << std::endl;
+            exit(1);
+        }
+        if (dynamic_cast<ASTNodeIdentifier *>(expr)) {
+            auto &symbol = this->symtab.get_symbol(dynamic_cast<ASTNodeIdentifier *>(expr)->name);
+            if (symbol.type.type != string_t.type) {
+                if (is_assignment_check)
+                    std::cerr << "Semantic error: cannot assign non-string variable to string variable, error on line " << line << std::endl;
+                else /* Return type check */
+                    std::cerr << "Semantic error: function declared as returning string -> cannot return non-string, error on line " << line << std::endl;
+                exit(1);
+            }
+        }
+        if (dynamic_cast<ASTNodeCallFunc *>(expr)) {
+            auto &symbol = this->symtab.get_symbol(dynamic_cast<ASTNodeCallFunc *>(expr)->name);
+            if (symbol.type.type != string_t.type) {
+                if (is_assignment_check)
+                    std::cerr << "Semantic error: cannot assign function returning non-string to string variable, error on line " << line << std::endl;
+                else /* Return type check */
+                    std::cerr << "Semantic error: function declared as returning string -> cannot return non-string, error on line " << line << std::endl;
+                exit(1);
+            }
+        }
+    }
+}
+
 void SemanticAnalyzer::visit(ASTNodeBlock *node) {
     for (auto &statement: node->statements)
         statement->accept(this);
@@ -151,31 +213,7 @@ void SemanticAnalyzer::visit(ASTNodeDeclVar *node) {
         this->assigned_constants[node->name] = false;
     }
 
-    /* TODO: type checking is pain */
-//    if (symbol.type != str_to_val_type("string") && dynamic_cast<ASTNodeStringLiteral *>(node->expression)) {
-//        std::cerr << "Semantic error: string literals cannot be assigned to non-string variables, error on line " << node->line << std::endl;
-//        exit(1);
-//    }
-//    else if (symbol.type != str_to_val_type("string") && dynamic_cast<ASTNodeCallFunc *>(node->expression)) {
-//        auto *call_func = dynamic_cast<ASTNodeCallFunc *>(node->expression);
-//        auto &func_symbol = this->symtab.get_symbol(call_func->name);
-//        if (func_symbol.type == str_to_val_type("string")) {
-//            std::cerr << "Semantic error: function \"" << call_func->name << "\" returns string, error on line " << node->line << std::endl;
-//            exit(1);
-//        }
-//    }
-//    else if (symbol.type == str_to_val_type("string") && symbol.is_pointer == false && !dynamic_cast<ASTNodeStringLiteral *>(node->expression) && !dynamic_cast<ASTNodeCallFunc *>(node->expression)) {
-//        std::cerr << "Semantic error: non-string literals cannot be assigned to string variables, error on line " << node->line << std::endl;
-//        exit(1);
-//    }
-//    else if (symbol.type == str_to_val_type("string") && dynamic_cast<ASTNodeCallFunc *>(node->expression)) {
-//        auto *call_func = dynamic_cast<ASTNodeCallFunc *>(node->expression);
-//        auto &func_symbol = this->symtab.get_symbol(call_func->name);
-//        if (func_symbol.type != str_to_val_type("string")) {
-//            std::cerr << "Semantic error: function \"" << call_func->name << "\" does not return string, error on line " << node->line << std::endl;
-//            exit(1);
-//        }
-//    }
+    check_expr_type(symbol.type, node->expression, node->line);
 }
 
 void SemanticAnalyzer::visit(ASTNodeDeclFunc *node) {
@@ -209,7 +247,9 @@ void SemanticAnalyzer::visit(ASTNodeDeclFunc *node) {
         if (this->problematic_forward_referenced_functions.find(node->name) != this->problematic_forward_referenced_functions.end())
             this->problematic_forward_referenced_functions.erase(node->name);
 
+        return_types.push_back(this->symtab.get_symbol(node->name).type);
         node->block->accept(this);
+        return_types.pop_back();
 
         this->current_functions.pop_back();
 
@@ -301,7 +341,7 @@ void SemanticAnalyzer::visit(ASTNodeReturn *node) {
     if (node->expression)
         node->expression->accept(this);
 
-    /* TODO: type check */
+    check_expr_type(return_types.back(), node->expression, node->line, false);
 }
 
 void SemanticAnalyzer::visit(ASTNodeGoto *node) {
@@ -361,7 +401,7 @@ void SemanticAnalyzer::visit(ASTNodeAssignExpression *node) {
 
     this->defined_variables[node->name] = true;
 
-    if (dynamic_cast<ASTNodeAssignExpression *>(node->expression)) { /* TODO: will be supported :) */
+    if (dynamic_cast<ASTNodeAssignExpression *>(node->expression)) {
         std::cerr << "Multi assignment is not supported, error on line " << node->line << std::endl;
         exit(1);
     }
@@ -410,32 +450,7 @@ void SemanticAnalyzer::visit(ASTNodeAssignExpression *node) {
         exit(1);
     }
 
-    /* TODO: type checking is pain */
-//    if (symbol.type != str_to_val_type("string") && dynamic_cast<ASTNodeStringLiteral *>(node->expression)) {
-//        std::cerr << "Semantic error: string literals cannot be assigned to non-string variables, error on line " << node->line << std::endl;
-//        exit(1);
-//    }
-//    else if (symbol.type != str_to_val_type("string") && dynamic_cast<ASTNodeCallFunc *>(node->expression)) {
-//        auto *call_func = dynamic_cast<ASTNodeCallFunc *>(node->expression);
-//        auto &func_symbol = this->symtab.get_symbol(call_func->name);
-//        if (func_symbol.type == str_to_val_type("string")) {
-//            std::cerr << "Semantic error: function \"" << call_func->name << "\" returns string, error on line " << node->line << std::endl;
-//            exit(1);
-//        }
-//    }
-//    else if (symbol.type == str_to_val_type("string") && symbol.is_pointer == false &&  !dynamic_cast<ASTNodeStringLiteral *>(node->expression) && !dynamic_cast<ASTNodeCallFunc *>(node->expression)) {
-//        std::cerr << "Semantic error: non-string literals cannot be assigned to string variables, error on line " << node->line << std::endl;
-//        exit(1);
-//    }
-//    else if (symbol.type == str_to_val_type("string") && dynamic_cast<ASTNodeCallFunc *>(node->expression)) {
-//        auto *call_func = dynamic_cast<ASTNodeCallFunc *>(node->expression);
-//        auto &func_symbol = this->symtab.get_symbol(call_func->name);
-//        if (func_symbol.type != str_to_val_type("string")) {
-//            std::cerr << "Semantic error: function \"" << call_func->name << "\" does not return string, error on line "
-//                      << node->line << std::endl;
-//            exit(1);
-//        }
-//    }
+    check_expr_type(symbol.type, node->expression, node->line);
 }
 
 void SemanticAnalyzer::visit(ASTNodeTernaryOperator *node) {

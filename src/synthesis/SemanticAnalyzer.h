@@ -16,8 +16,10 @@ private:
     std::vector<std::string> declared_labels;
     std::vector<std::pair<std::string, int>> used_labels;
     std::map<std::string, bool> defined_variables;
+    std::vector<Type> return_types;
 
     void register_label(ASTNode *node);
+    void check_expr_type(Type type, ASTNodeExpression *expr, int line, bool is_assignment_check = true);
 
 public:
 
