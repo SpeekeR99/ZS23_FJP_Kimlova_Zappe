@@ -1,0 +1,22 @@
+const int dva = 2;
+
+float double(float x) {
+    /* This is example of implicit casting (promoting) int to float */
+    return x * dva;
+}
+
+int main() {
+    float pi = 3.1415;
+
+    /* This is example of explicit casting (concretely float to int) */
+    int vysledek = (int) double(pi);
+    print_int(vysledek);
+
+    print_str("\n");
+
+    /* This is yet another (pun intended) example of implicit casting (promoting) int to float */
+    float test = 9. / dva;
+    print_float(test);
+
+    return 0;
+}

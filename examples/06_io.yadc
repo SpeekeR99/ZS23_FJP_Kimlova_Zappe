@@ -1,0 +1,17 @@
+/*
+I/O functions are built-in functions and are used like this:
+(be careful about the new line (ASCII 10) character at the end of the input, it MUST be there!)
+*/
+
+int main() {
+    int a = read_int();
+    print_int(a);
+
+    float b = read_float();
+    print_float(b);
+
+    string c = read_str();
+    print_str(c);
+
+    return 0;
+}

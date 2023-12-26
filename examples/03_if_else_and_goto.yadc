@@ -1,0 +1,19 @@
+int a = 5; /* Global variables are a thing */
+
+int main() {
+    try_again: /* This is a label */
+    if ((a == 5 && true) || (a == 0)) {
+        a = 10;
+    }
+
+    if (a == 5) {
+        /* HOW IS THIS EVEN POSSIBLE?! */
+        goto try_again;
+    }
+    else {
+        int b = 20;
+        a = b * a;
+    }
+
+    return 0;
+}

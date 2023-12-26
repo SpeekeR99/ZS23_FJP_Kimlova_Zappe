@@ -5,7 +5,8 @@ int main() {
 
     float diff = true_pi - pi;
 
-    float golden_ratio = 2.23606798 + 1.0;
+    /* Ternary operator example is hidden here */
+    float golden_ratio = (pi == 3.0) ? 2.23606798 + 1.0 : 0.0;
     golden_ratio = golden_ratio / 2.0;
 
     return 0;

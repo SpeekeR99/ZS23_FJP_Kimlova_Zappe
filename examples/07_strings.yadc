@@ -1,13 +1,21 @@
+/*
+This is example of builtin functions for strings
+*/
+
 int main() {
     print_str("Hello, world!\n");
 
     string s = read_str();
+    /* strlen(string) return length of string */
+    int s_len = strlen(s);
+    /* strcat(string, string) return concatenation of two strings */
     s = strcat(s, "\n");
     print_str(s);
 
     string a = "abc";
     string b = "abc";
 
+    /* strcmp(string, string) return true (1) if strings are same, false (0) otherwise */
     bool same = strcmp(a, b);
     if (same) {
         print_str("same\n");

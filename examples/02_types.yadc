@@ -1,0 +1,14 @@
+int main() {
+    int integer = 5;
+    bool boolean = true;
+    float real_number = 3.1415;
+    string text = "Hi";
+
+    int ^int_pointer = @integer;
+    bool ^bool_pointer = @boolean;
+    /* WARNING: float pointers are not supported! Read docs for more info */
+    /* float ^float_pointer = @real_number; */
+    string ^text_array = new string[2];
+
+    return 0;
+}

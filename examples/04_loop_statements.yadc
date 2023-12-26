@@ -1,0 +1,53 @@
+int main() {
+    /* While loop */
+    int i = 3;
+    while (i > 0) {
+        int a = 5;
+        if (a == 5) {
+            int b = 1;
+            i = i - b;
+        }
+    }
+
+    /* Do-while loop */
+    i = 3;
+    do {
+        int a = 5;
+        if (a == 5) {
+            int b = 1;
+            i = i - b;
+        }
+    } while (i > 0);
+
+    /* For loop */
+    i = 3;
+    for (int j = 0; j < i; j = j + 1) {
+        int a = 5;
+        if (a == 5) {
+            int b = 1;
+            i = i - b;
+        }
+    }
+
+    /* Until loop */
+    i = 3;
+    until (i == 0) {
+        int a = 5;
+        if (a == 5) {
+            int b = 1;
+            i = i - b;
+        }
+    }
+
+    /* Do-until loop */
+    i = 3;
+    do {
+        int a = 5;
+        if (a == 5) {
+            int b = 1;
+            i = i - b;
+        }
+    } until (i == 0);
+
+    return 0;
+}

@@ -88,7 +88,7 @@ void SemanticAnalyzer::check_expr_type(Type type, ASTNodeExpression *expr, int l
     }
 
     /* If type is string, but expression is not string literal or string variable or function returning string, error */
-    if (type.type == string_t.type) {
+    if (type.type == string_t.type && !type.is_pointer) {
         if (!dynamic_cast<ASTNodeStringLiteral *>(expr) && !dynamic_cast<ASTNodeIdentifier *>(expr) && !dynamic_cast<ASTNodeCallFunc *>(expr)) {
             if (is_assignment_check)
                 std::cerr << "Semantic error: cannot assign non-string expression to string variable, error on line " << line << std::endl;

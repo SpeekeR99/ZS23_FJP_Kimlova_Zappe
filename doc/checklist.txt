@@ -71,7 +71,7 @@ Nase rozsireni interpreteru (?b):
   5 Oprava napovedy, kde PLD a PST jsou popsany chybne
     (prohozena adresa a level)                                              (DONE)
   6 Oprava I/O jako celku, kde WRI napr. mazalo znak ze vstupu              (DONE)
-  7 Oprava I/O pri supsteni pomoci "run", nikoliv pouze pri krokovani       (DONE)
+  7 Oprava I/O pri spusteni pomoci "run", nikoliv pouze pri krokovani       (DONE)
 
 
 Poznamka:

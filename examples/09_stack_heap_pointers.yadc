@@ -1,0 +1,13 @@
+int main() {
+    int a = 5;
+    int ^b = @a;        /* b points to a (on stack) */
+    ^(b) = 10;
+
+    b = new(int, 3);    /* b points to a new int array (heap) */
+    ^(b + 1) = 20;
+
+    b = @a;             /* b points to a (on stack) */
+    ^(b) = 42;
+
+    return 0;
+}

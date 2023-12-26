@@ -27,7 +27,7 @@ int iterative_fib(int n) {
 }
 
 int main() {
-    int n = 10;
+    int n = read_int();
 
     int rec = recursive_fib(n);
     int it = iterative_fib(n);

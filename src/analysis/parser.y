@@ -285,13 +285,13 @@ do_while_stmt:
 ;
 
 until_do_stmt:
-    UNTIL L_BRACKET expr R_BRACKET DO block SEMICOLON {
-        $$ = new ASTNodeWhile($3, $6, false, true, yylineno);
+    UNTIL L_BRACKET expr R_BRACKET block {
+        $$ = new ASTNodeWhile($3, $5, false, true, yylineno);
     }
 ;
 
 repeat_until_stmt:
-    REPEAT block UNTIL L_BRACKET expr R_BRACKET SEMICOLON {
+    DO block UNTIL L_BRACKET expr R_BRACKET SEMICOLON {
         $$ = new ASTNodeWhile($5, $2, true, true, yylineno);
     }
 ;
