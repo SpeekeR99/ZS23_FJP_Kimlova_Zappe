@@ -1,0 +1,22 @@
+int global_result = 0;
+
+void sum(int a, int b, int ^result) {
+    ^(result) = a + b;
+    int ^global_result_ptr = @global_result;
+    ^(global_result_ptr) = a + b;
+    return;
+}
+
+int main() {
+    int a = 5;
+    int b = 10;
+    int ^c = new(int, 1);
+
+    sum(a, b, c);
+
+    print_int(^(c));
+    print_str("\n");
+    print_int(global_result);
+
+    return 0;
+}

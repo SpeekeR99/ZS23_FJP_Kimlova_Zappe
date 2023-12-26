@@ -1,0 +1,25 @@
+int a = 5;
+
+void outer();
+
+int b = 3;
+
+int main() {
+    a = 10;
+    int b = 5;
+    print_int(a);
+    a = outer();
+    print_int(a);
+    return 0;
+}
+
+int outer() {
+    int c = 5;
+    int inner() {
+        a = 25;
+        int d = c + 1;
+        c = a * b;
+        return d;
+    }
+    return inner() + c;
+}

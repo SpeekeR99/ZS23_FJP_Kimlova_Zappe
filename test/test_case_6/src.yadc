@@ -1,0 +1,40 @@
+int recursive_fib(int n) {
+    if (n <= 1) {
+        return n;
+    }
+
+    return recursive_fib(n - 1) + recursive_fib(n - 2);
+}
+
+int iterative_fib(int n) {
+    int a = 0;
+    int b = 1;
+    int c = 0;
+    int i = 2;
+
+    if (n == 0) {
+        return a;
+    }
+
+    while (i <= n) {
+        c = a + b;
+        a = b;
+        b = c;
+        i = i + 1;
+    }
+
+    return b;
+}
+
+int main() {
+    int n = 10;
+
+    int rec = recursive_fib(n);
+    int it = iterative_fib(n);
+
+    print_num(rec);
+    print_str("\n");
+    print_num(it);
+
+    return 0;
+}

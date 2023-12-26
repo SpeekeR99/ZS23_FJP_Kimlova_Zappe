@@ -1,0 +1,19 @@
+const int dva = 2;
+
+float double(float x) {
+    return x * (float) dva;
+}
+
+int main() {
+    float pi = 3.1415;
+
+    int vysledek = (int) double(pi);
+    print_int(vysledek);
+
+    print_str("\n");
+
+    float test = 9. / (float) dva;
+    print_float(test);
+
+    return 0;
+}
