@@ -95,41 +95,57 @@ decl_var_stmt:
     }
     | TYPE ID ASSIGN_OP expr SEMICOLON {
         $$ = new ASTNodeDeclVar(*$1, 0, *$2, false, $4, yylineno);
+        $4->parent = $$;
         delete $1;
         delete $2;
     }
     | TYPE ptr_modifier ID ASSIGN_OP expr SEMICOLON {
         $$ = new ASTNodeDeclVar(*$1, $2, *$3, false, $5, yylineno);
+        $5->parent = $$;
         delete $1;
         delete $3;
     }
     | CONSTANT TYPE ID ASSIGN_OP expr SEMICOLON {
         $$ = new ASTNodeDeclVar(*$2, 0, *$3, true, $5, yylineno);
+        $5->parent = $$;
         delete $2;
         delete $3;
     }
     | CONSTANT TYPE ptr_modifier ID ASSIGN_OP expr SEMICOLON {
         $$ = new ASTNodeDeclVar(*$2, $3, *$4, true, $6, yylineno);
+        $6->parent = $$;
         delete $2;
         delete $4;
     }
     | TYPE ID ASSIGN_OP expr QUESTION expr COLON expr SEMICOLON {
         $$ = new ASTNodeDeclVar(*$1, 0, *$2, false, new ASTNodeTernaryOperator($4, $6, $8, yylineno), yylineno);
+        $4->parent = $$;
+        $6->parent = $$;
+        $8->parent = $$;
         delete $1;
         delete $2;
     }
     | TYPE ptr_modifier ID ASSIGN_OP expr QUESTION expr COLON expr SEMICOLON {
         $$ = new ASTNodeDeclVar(*$1, $2, *$3, false, new ASTNodeTernaryOperator($5, $7, $9, yylineno), yylineno);
+        $5->parent = $$;
+        $7->parent = $$;
+        $9->parent = $$;
         delete $1;
         delete $3;
     }
     | CONSTANT TYPE ID ASSIGN_OP expr QUESTION expr COLON expr SEMICOLON {
         $$ = new ASTNodeDeclVar(*$2, 0, *$3, true, new ASTNodeTernaryOperator($5, $7, $9, yylineno), yylineno);
+        $5->parent = $$;
+        $7->parent = $$;
+        $9->parent = $$;
         delete $2;
         delete $3;
     }
     | CONSTANT TYPE ptr_modifier ID ASSIGN_OP expr QUESTION expr COLON expr SEMICOLON {
         $$ = new ASTNodeDeclVar(*$2, $3, *$4, true, new ASTNodeTernaryOperator($6, $8, $10, yylineno), yylineno);
+        $6->parent = $$;
+        $8->parent = $$;
+        $10->parent = $$;
         delete $2;
         delete $4;
     }
@@ -236,12 +252,14 @@ stmt:
     }
     | expr SEMICOLON {
         $$ = new ASTNodeExpressionStatement($1, yylineno);
+        $1->parent = $$;
     }
 ;
 
 if_stmt:
     IF L_BRACKET expr R_BRACKET block else_stmt {
         $$ = new ASTNodeIf($3, $5, $6, yylineno);
+        $3->parent = $$;
     }
 ;
 
@@ -275,24 +293,28 @@ loop_stmt:
 while_stmt:
     WHILE L_BRACKET expr R_BRACKET block {
         $$ = new ASTNodeWhile($3, $5, false, false, yylineno);
+        $3->parent = $$;
     }
 ;
 
 do_while_stmt:
     DO block WHILE L_BRACKET expr R_BRACKET SEMICOLON {
         $$ = new ASTNodeWhile($5, $2, true, false, yylineno);
+        $5->parent = $$;
     }
 ;
 
 until_do_stmt:
     UNTIL L_BRACKET expr R_BRACKET block {
         $$ = new ASTNodeWhile($3, $5, false, true, yylineno);
+        $3->parent = $$;
     }
 ;
 
 repeat_until_stmt:
     DO block UNTIL L_BRACKET expr R_BRACKET SEMICOLON {
         $$ = new ASTNodeWhile($5, $2, true, true, yylineno);
+        $5->parent = $$;
     }
 ;
 
@@ -300,9 +322,14 @@ for_stmt:
     FOR L_BRACKET expr SEMICOLON expr SEMICOLON expr R_BRACKET block {
         auto temp = new ASTNodeExpressionStatement($3, yylineno);
         $$ = new ASTNodeFor(temp, $5, $7, $9, yylineno);
+        $3->parent = temp;
+        $5->parent = $$;
+        $7->parent = $$;
     }
     | FOR L_BRACKET decl_var_stmt expr SEMICOLON expr R_BRACKET block {
         $$ = new ASTNodeFor($3, $4, $6, $8, yylineno);
+        $4->parent = $$;
+        $6->parent = $$;
     }
 ;
 
@@ -336,6 +363,7 @@ continue_stmt:
 return_stmt:
     RETURN expr SEMICOLON {
         $$ = new ASTNodeReturn($2, yylineno);
+        $2->parent = $$;
     }
     | RETURN SEMICOLON {
         $$ = new ASTNodeReturn(nullptr, yylineno);
@@ -401,42 +429,61 @@ expr:
 assign_expr:
     ID ASSIGN_OP expr {
         $$ = new ASTNodeAssignExpression(*$1, nullptr, $3, yylineno);
+        $3->parent = $$;
         delete $1;
     }
     | ID ASSIGN_OP expr QUESTION expr COLON expr {
         $$ = new ASTNodeAssignExpression(*$1, nullptr, new ASTNodeTernaryOperator($3, $5, $7, yylineno), yylineno);
+        $3->parent = $$;
+        $5->parent = $$;
+        $7->parent = $$;
         delete $1;
     }
     | expr ASSIGN_OP expr {
         if (auto deref = dynamic_cast<ASTNodeDereference *>($1))
             deref->is_lvalue = true;
         $$ = new ASTNodeAssignExpression("", $1, $3, yylineno);
+        $3->parent = $$;
     }
     | expr ASSIGN_OP expr QUESTION expr COLON expr {
         if (auto deref = dynamic_cast<ASTNodeDereference *>($1))
             deref->is_lvalue = true;
         $$ = new ASTNodeAssignExpression("", $1, new ASTNodeTernaryOperator($3, $5, $7, yylineno), yylineno);
+        $3->parent = $$;
+        $5->parent = $$;
+        $7->parent = $$;
     }
 ;
 
 arithm_expr:
     expr ADD expr {
         $$ = new ASTNodeBinaryOperator($1, "+", $3, yylineno);
+        $1->parent = $$;
+        $3->parent = $$;
     }
     | expr SUB expr {
         $$ = new ASTNodeBinaryOperator($1, "-", $3, yylineno);
+        $1->parent = $$;
+        $3->parent = $$;
     }
     | expr MUL expr {
         $$ = new ASTNodeBinaryOperator($1, "*", $3, yylineno);
+        $1->parent = $$;
+        $3->parent = $$;
     }
     | expr DIV expr {
         $$ = new ASTNodeBinaryOperator($1, "/", $3, yylineno);
+        $1->parent = $$;
+        $3->parent = $$;
     }
     | expr MOD expr {
         $$ = new ASTNodeBinaryOperator($1, "%", $3, yylineno);
+        $1->parent = $$;
+        $3->parent = $$;
     }
     | SUB expr %prec U_MINUS {
         $$ = new ASTNodeUnaryOperator("-", $2, yylineno);
+        $2->parent = $$;
     }
 ;
 
@@ -444,39 +491,57 @@ arithm_expr:
 logic_expr:
     expr AND expr {
         $$ = new ASTNodeBinaryOperator($1, "&&", $3, yylineno);
+        $1->parent = $$;
+        $3->parent = $$;
     }
     | expr OR expr {
         $$ = new ASTNodeBinaryOperator($1, "||", $3, yylineno);
+        $1->parent = $$;
+        $3->parent = $$;
     }
     | NOT expr {
         $$ = new ASTNodeUnaryOperator("!", $2, yylineno);
+        $2->parent = $$;
     }
 ;
 
 compare_expr:
     expr EQ expr {
         $$ = new ASTNodeBinaryOperator($1, "==", $3, yylineno);
+        $1->parent = $$;
+        $3->parent = $$;
     }
     | expr NEQ expr {
         $$ = new ASTNodeBinaryOperator($1, "!=", $3, yylineno);
+        $1->parent = $$;
+        $3->parent = $$;
     }
     | expr LESS expr {
         $$ = new ASTNodeBinaryOperator($1, "<", $3, yylineno);
+        $1->parent = $$;
+        $3->parent = $$;
     }
     | expr LESSEQ expr {
         $$ = new ASTNodeBinaryOperator($1, "<=", $3, yylineno);
+        $1->parent = $$;
+        $3->parent = $$;
     }
     | expr GRT expr {
         $$ = new ASTNodeBinaryOperator($1, ">", $3, yylineno);
+        $1->parent = $$;
+        $3->parent = $$;
     }
     | expr GRTEQ expr {
         $$ = new ASTNodeBinaryOperator($1, ">=", $3, yylineno);
+        $1->parent = $$;
+        $3->parent = $$;
     }
 ;
 
 cast_expr:
     L_BRACKET TYPE R_BRACKET expr {
         $$ = new ASTNodeCast(*$2, $4, yylineno);
+        $4->parent = $$;
     }
 ;
 
@@ -511,13 +576,16 @@ args_list:
 memory_expr:
     NEW L_BRACKET TYPE COMMA expr R_BRACKET {
         $$ = new ASTNodeNew(*$3, $5, yylineno);
+        $5->parent = $$;
         delete $3;
     }
     | DELETE expr {
         $$ = new ASTNodeDelete($2, yylineno);
+        $2->parent = $$;
     }
     | DEREF expr {
         $$ = new ASTNodeDereference($2, yylineno);
+        $2->parent = $$;
     }
     | REF ID {
         $$ = new ASTNodeReference(*$2, yylineno);

@@ -77,6 +77,7 @@ class ASTNodeExpression : public ASTNode {
 public:
     int line = -1;
     std::string label;
+    ASTNode *parent = nullptr;
     ~ASTNodeExpression() override = default;
 
     void accept(ASTVisitor *visitor) override = 0;

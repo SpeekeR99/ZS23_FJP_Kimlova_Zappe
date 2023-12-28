@@ -460,6 +460,27 @@ void SemanticAnalyzer::visit(ASTNodeTernaryOperator *node) {
 }
 
 void SemanticAnalyzer::visit(ASTNodeBinaryOperator *node) {
+    if (node->op == "/") {
+        if (auto right_lit_i = dynamic_cast<ASTNodeIntLiteral *>(node->right)) {
+            if (right_lit_i->value == 0) {
+                std::cerr << "Semantic error: division by zero, error on line " << node->line << std::endl;
+                exit(1);
+            }
+        }
+        else if (auto right_lit_f = dynamic_cast<ASTNodeFloatLiteral *>(node->right)) {
+            if (right_lit_f->value == 0.0) {
+                std::cerr << "Semantic error: division by zero, error on line " << node->line << std::endl;
+                exit(1);
+            }
+        }
+        else if (auto right_lit_b = dynamic_cast<ASTNodeBoolLiteral *>(node->right)) {
+            if (right_lit_b->value == 0) {
+                std::cerr << "Semantic error: division by zero, error on line " << node->line << std::endl;
+                exit(1);
+            }
+        }
+    }
+
     node->left->accept(this);
     node->right->accept(this);
 

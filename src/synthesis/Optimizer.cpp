@@ -12,23 +12,6 @@ void Optimizer::optimize_instructions(std::vector<Instruction> &instructions) {
     for (int i = 0; i < instructions.size(); i++) {
         auto &instruction = instructions[i];
 
-        if (instruction.instruction == "OPR") {
-            if (instruction.parameter == PL0_ADD || instruction.parameter == PL0_SUB) {
-                auto &previous_instruction = instructions[i - 1];
-                if (previous_instruction.instruction == "LIT" && previous_instruction.parameter == 0) {
-                    instruction.instruction = "DELETE";
-                    previous_instruction.instruction = "DELETE";
-                }
-            }
-            if (instruction.parameter == PL0_MUL || instruction.parameter == PL0_DIV) {
-                auto &previous_instruction = instructions[i - 1];
-                if (previous_instruction.instruction == "LIT" && previous_instruction.parameter == 1) {
-                    instruction.instruction = "DELETE";
-                    previous_instruction.instruction = "DELETE";
-                }
-            }
-        }
-
         if (instruction.instruction == "JMP" || instruction.instruction == "JMC" || instruction.instruction == "CAL") {
             auto &jump_destination = instructions[instruction.parameter];
             while(jump_destination.instruction == "JMP") {
@@ -144,9 +127,217 @@ void Optimizer::visit(ASTNodeTernaryOperator *node) {
     node->false_expression->accept(this);
 }
 
+void modify_ast_parent_child(ASTNode *node, ASTNode *parent, ASTNodeExpression *new_child) {
+    if (auto statement_parent = dynamic_cast<ASTNodeExpressionStatement *>(parent)) {
+        statement_parent->expression = new_child;
+        new_child->parent = statement_parent;
+    } else if (auto assign_parent = dynamic_cast<ASTNodeAssignExpression *>(parent)) {
+        assign_parent->expression = new_child;
+        new_child->parent = assign_parent;
+    } else if (auto decl_var_parent = dynamic_cast<ASTNodeDeclVar *>(parent)) {
+        decl_var_parent->expression = new_child;
+        new_child->parent = decl_var_parent;
+    } else if (auto binary_parent = dynamic_cast<ASTNodeBinaryOperator *>(parent)) {
+        if (binary_parent->left == node) {
+            binary_parent->left = new_child;
+            new_child->parent = binary_parent;
+        } else if (binary_parent->right == node) {
+            binary_parent->right = new_child;
+            new_child->parent = binary_parent;
+        }
+    } else if (auto if_parent = dynamic_cast<ASTNodeIf *>(parent)) {
+        if (if_parent->condition == node) {
+            if_parent->condition = new_child;
+            new_child->parent = if_parent;
+        }
+    } else if (auto while_parent = dynamic_cast<ASTNodeWhile *>(parent)) {
+        if (while_parent->condition == node) {
+            while_parent->condition = new_child;
+            new_child->parent = while_parent;
+        }
+    } else if (auto for_parent = dynamic_cast<ASTNodeFor *>(parent)) {
+        if (for_parent->condition == node) {
+            for_parent->condition = new_child;
+            new_child->parent = for_parent;
+        } else if (for_parent->increment == node) {
+            for_parent->increment = new_child;
+            new_child->parent = for_parent;
+        }
+    } else if (auto return_parent = dynamic_cast<ASTNodeReturn *>(parent)) {
+        if (return_parent->expression == node) {
+            return_parent->expression = new_child;
+            new_child->parent = return_parent;
+        }
+    } else if (auto ternary_parent = dynamic_cast<ASTNodeTernaryOperator *>(parent)) {
+        if (ternary_parent->condition == node) {
+            ternary_parent->condition = new_child;
+            new_child->parent = ternary_parent;
+        } else if (ternary_parent->true_expression == node) {
+            ternary_parent->true_expression = new_child;
+            new_child->parent = ternary_parent;
+        } else if (ternary_parent->false_expression == node) {
+            ternary_parent->false_expression = new_child;
+            new_child->parent = ternary_parent;
+        }
+    }
+}
+
 void Optimizer::visit(ASTNodeBinaryOperator *node) {
     node->left->accept(this);
     node->right->accept(this);
+    if (node->op == "+" || node->op == "-") {
+        if (auto left_lit_i = dynamic_cast<ASTNodeIntLiteral *>(node->left)) {
+            if (left_lit_i->value == 0) {
+                auto parent = node->parent;
+                if (parent) {
+                    modify_ast_parent_child(node, parent, node->right);
+                    parent->accept(this);
+                }
+            }
+        } else if (auto right_lit_i = dynamic_cast<ASTNodeIntLiteral *>(node->right)) {
+            if (right_lit_i->value == 0) {
+                auto parent = node->parent;
+                if (parent) {
+                    modify_ast_parent_child(node, parent, node->left);
+                    parent->accept(this);
+                }
+            }
+        } else if (auto left_lit_f = dynamic_cast<ASTNodeFloatLiteral *>(node->left)) {
+            if (left_lit_f->value == 0) {
+                auto parent = node->parent;
+                if (parent) {
+                    modify_ast_parent_child(node, parent, node->right);
+                    parent->accept(this);
+                }
+            }
+        } else if (auto right_lit_f = dynamic_cast<ASTNodeFloatLiteral *>(node->right)) {
+            if (right_lit_f->value == 0) {
+                auto parent = node->parent;
+                if (parent) {
+                    modify_ast_parent_child(node, parent, node->left);
+                    parent->accept(this);
+                }
+            }
+        }
+    } else if (node->op == "*" || node->op == "/") {
+        if (auto left_lit_i = dynamic_cast<ASTNodeIntLiteral *>(node->left)) {
+            if (left_lit_i->value == 0) {
+                auto parent = node->parent;
+                if (parent) {
+                    modify_ast_parent_child(node, parent, left_lit_i);
+                    parent->accept(this);
+                }
+            } else if (left_lit_i->value == 1) {
+                auto parent = node->parent;
+                if (parent) {
+                    modify_ast_parent_child(node, parent, node->right);
+                    parent->accept(this);
+                }
+            }
+        } else if (auto right_lit_i = dynamic_cast<ASTNodeIntLiteral *>(node->right)) {
+            if (right_lit_i->value == 0) {
+                auto parent = node->parent;
+                if (parent) {
+                    parent->accept(this);
+                    modify_ast_parent_child(node, parent, right_lit_i);
+                }
+            } else if (right_lit_i->value == 1) {
+                auto parent = node->parent;
+                if (parent) {
+                    modify_ast_parent_child(node, parent, node->left);
+                    parent->accept(this);
+                }
+            }
+        } else if (auto left_lit_f = dynamic_cast<ASTNodeFloatLiteral *>(node->left)) {
+            if (left_lit_f->value == 0) {
+                auto parent = node->parent;
+                if (parent) {
+                    modify_ast_parent_child(node, parent, left_lit_f);
+                    parent->accept(this);
+                }
+            } else if (left_lit_f->value == 1) {
+                auto parent = node->parent;
+                if (parent) {
+                    modify_ast_parent_child(node, parent, node->right);
+                    parent->accept(this);
+                }
+            }
+        } else if (auto right_lit_f = dynamic_cast<ASTNodeFloatLiteral *>(node->right)) {
+            if (right_lit_f->value == 0) {
+                auto parent = node->parent;
+                if (parent) {
+                    modify_ast_parent_child(node, parent, right_lit_f);
+                    parent->accept(this);
+                }
+            } else if (right_lit_f->value == 1) {
+                auto parent = node->parent;
+                if (parent) {
+                    modify_ast_parent_child(node, parent, node->left);
+                    parent->accept(this);
+                }
+            }
+        }
+    } else if (node->op == "&&") {
+        if (auto left_lit_b = dynamic_cast<ASTNodeBoolLiteral *>(node->left)) {
+            if (!left_lit_b->value) {
+                auto parent = node->parent;
+                if (parent) {
+                    modify_ast_parent_child(node, parent, left_lit_b);
+                    parent->accept(this);
+                }
+            } else {
+                auto parent = node->parent;
+                if (parent) {
+                    modify_ast_parent_child(node, parent, node->right);
+                    parent->accept(this);
+                }
+            }
+        } else if (auto right_lit_b = dynamic_cast<ASTNodeBoolLiteral *>(node->right)) {
+            if (!right_lit_b->value) {
+                auto parent = node->parent;
+                if (parent) {
+                    modify_ast_parent_child(node, parent, right_lit_b);
+                    parent->accept(this);
+                }
+            } else {
+                auto parent = node->parent;
+                if (parent) {
+                    modify_ast_parent_child(node, parent, node->left);
+                    parent->accept(this);
+                }
+            }
+        }
+    } else if (node->op == "||") {
+        if (auto left_lit_b = dynamic_cast<ASTNodeBoolLiteral *>(node->left)) {
+            if (left_lit_b->value) {
+                auto parent = node->parent;
+                if (parent) {
+                    modify_ast_parent_child(node, parent, left_lit_b);
+                    parent->accept(this);
+                }
+            } else {
+                auto parent = node->parent;
+                if (parent) {
+                    modify_ast_parent_child(node, parent, node->right);
+                    parent->accept(this);
+                }
+            }
+        } else if (auto right_lit_b = dynamic_cast<ASTNodeBoolLiteral *>(node->right)) {
+            if (right_lit_b->value) {
+                auto parent = node->parent;
+                if (parent) {
+                    modify_ast_parent_child(node, parent, right_lit_b);
+                    parent->accept(this);
+                }
+            } else {
+                auto parent = node->parent;
+                if (parent) {
+                    modify_ast_parent_child(node, parent, node->left);
+                    parent->accept(this);
+                }
+            }
+        }
+    }
 }
 
 void Optimizer::visit(ASTNodeUnaryOperator *node) {
