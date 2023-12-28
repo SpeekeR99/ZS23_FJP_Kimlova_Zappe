@@ -60,6 +60,8 @@ Nase rozsireni (?b):
     operaci, kde jeden z operandu je float
     (je mozne implicitni pretypovani prebit explicitnim pretypovanim)       (DONE)
  12 Jednoduchy type checking prirazeni a return statementu                  (DONE)
+ 13 Optimalizace nad AST (binarni operace, kde jsou zbytecne literaly)      (DONE)
+ 14 Optimalizace nad vygenerovanymi instrukcemi (zbytecne skoky)            (DONE)
 
 Nase rozsireni interpreteru (?b):
   1 Vylepseni o instrukce ITR, RTI, OPF
