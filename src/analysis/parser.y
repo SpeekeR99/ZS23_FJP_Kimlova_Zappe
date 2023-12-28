@@ -487,7 +487,6 @@ arithm_expr:
     }
 ;
 
-
 logic_expr:
     expr AND expr {
         $$ = new ASTNodeBinaryOperator($1, "&&", $3, yylineno);

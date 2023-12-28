@@ -321,7 +321,7 @@ void InstructionsGenerator::gen_read_string() {
     this->generate(PL0_LOD, 0, temp_string_size_address);
     this->generate(PL0_STO, 0, temp_string_counter_address);
 
-    /* copy untill the the temp string size address is 0 */
+    /* copy untill the temp string size address is 0 */
     auto jump_to_start = this->get_instruction_counter();
     this->generate(PL0_LIT, 0, 0);
     this->generate(PL0_LOD, 0, temp_string_size_address);
@@ -578,13 +578,17 @@ void InstructionsGenerator::gen_print_float() {
     this->generate(PL0_LOD, 0, temp_float_address);
     this->generate(PL0_LOD, 0, temp_float_address + 1);
 
+    /* Make float into two integer parts (whole and fractional) */
+    /* Print the whole part */
     auto print_int_address = this->symtab.get_symbol("print_int").address;
     this->generate(PL0_RTI, 0, 1);
     this->generate(PL0_CAL, 0, print_int_address);
 
+    /* Print the dot */
     this->generate(PL0_LIT, 0, 46);
     this->generate(PL0_WRI, 0, 0);
 
+    /* Print the fractional part */
     this->generate(PL0_LOD, 0, temp_float_address);
     this->generate(PL0_LOD, 0, temp_float_address + 1);
     this->generate(PL0_RTI, 0, 0);

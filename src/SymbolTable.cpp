@@ -119,6 +119,7 @@ SymbolTable::SymbolTable() : table() {
 }
 
 void SymbolTable::init_builtin_functions() {
+    /* Insert builtin functions into the symbol table */
     this->insert_symbol("print_int", FUNCTION, void_t, false, 0);
     auto &print_num = this->get_symbol("print_int");
     auto print_param = SymbolTableRecord{"__print_int_param__", VARIABLE, int_t, false};

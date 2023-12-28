@@ -2,15 +2,18 @@
 
 void ASTNodeBlock::count_breaks_and_continues() {
     for (auto &statement: statements) {
+        /* If statement is block, we need to count breaks and continues in it */
         if (auto *block = dynamic_cast<ASTNodeBlock *>(statement)) {
             block->count_breaks_and_continues();
             this->break_number += block->break_number;
             this->continue_number += block->continue_number;
+        /* If statement is break or continue, we need to count it */
         } else if (auto *break_continue = dynamic_cast<ASTNodeBreakContinue *>(statement)) {
             if (break_continue->is_break)
                 this->break_number++;
             else
                 this->continue_number++;
+        /* If statements at the end of block make sense to have returns too */
         } else if (auto *if_stmt = dynamic_cast<ASTNodeIf *>(statement)) {
             if_stmt->block->count_breaks_and_continues();
             this->break_number += if_stmt->block->break_number;
@@ -47,7 +50,7 @@ bool ASTNodeBlock::contains_return_statement() {
         return false;
 
     auto last_statement = this->statements.back();
-    if (auto *return_statement = dynamic_cast<ASTNodeReturn *>(last_statement))
+    if (dynamic_cast<ASTNodeReturn *>(last_statement))
         return true;
     else if (auto *if_statement = dynamic_cast<ASTNodeIf *>(last_statement))
         return if_statement->contains_return_statement();
@@ -62,8 +65,10 @@ bool ASTNodeIf::contains_return_statement() {
 }
 
 bool ASTNodeBinaryOperator::contains_reference() {
+    /* If left or right is reference, return true */
     if (dynamic_cast<ASTNodeReference *>(this->left) || dynamic_cast<ASTNodeReference *>(this->right))
         return true;
+    /* If left or right is binary operator, check it */
     else if (auto *left_binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(this->left))
         return left_binary_operator->contains_reference();
     else if (auto *right_binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(this->right))
@@ -73,6 +78,7 @@ bool ASTNodeBinaryOperator::contains_reference() {
 
 std::string ASTNodeBinaryOperator::find_dereference() {
     std::string result;
+    /* If left or right is dereference, return it */
     if (auto *left_binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(this->left)) {
         result = left_binary_operator->find_dereference();
         if (!result.empty())
@@ -81,6 +87,7 @@ std::string ASTNodeBinaryOperator::find_dereference() {
         result = right_binary_operator->find_dereference();
         if (!result.empty())
             return result;
+    /* If left or right is identifier, return it */
     } else if (auto *left_id = dynamic_cast<ASTNodeIdentifier *>(this->left))
         return left_id->name;
     else if (auto *right_id = dynamic_cast<ASTNodeIdentifier *>(this->right))
@@ -89,17 +96,21 @@ std::string ASTNodeBinaryOperator::find_dereference() {
 }
 
 void ASTNodeBinaryOperator::is_float_arithmetic_check() {
+    /* If left is binary operator, check it */
     if (auto *left_binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(this->left)) {
         left_binary_operator->is_float_arithmetic_check();
         if (left_binary_operator->is_float_arithmetic)
             this->is_float_arithmetic = true;
+    /* If left is float literal, set flag */
     } else if (dynamic_cast<ASTNodeFloatLiteral *>(this->left)) {
         this->is_float_arithmetic = true;
     }
+    /* If right is binary operator, check it */
     if (auto *right_binary_operator = dynamic_cast<ASTNodeBinaryOperator *>(this->right)) {
         right_binary_operator->is_float_arithmetic_check();
         if (right_binary_operator->is_float_arithmetic)
             this->is_float_arithmetic = true;
+    /* If right is float literal, set flag */
     } else if (dynamic_cast<ASTNodeFloatLiteral *>(this->right)) {
         this->is_float_arithmetic = true;
     }

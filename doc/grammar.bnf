@@ -1,0 +1,166 @@
+program::=
+    program decl_var_stmt
+    | program decl_func_stmt
+    | /* empty */
+
+decl_var_stmt::=
+    TYPE ID SEMICOLON
+    | TYPE ptr_modifier ID SEMICOLON
+    | CONSTANT TYPE ID SEMICOLON
+    | CONSTANT TYPE ptr_modifier ID SEMICOLON
+    | TYPE ID ASSIGN_OP expr SEMICOLON
+    | TYPE ptr_modifier ID ASSIGN_OP expr SEMICOLON
+    | CONSTANT TYPE ID ASSIGN_OP expr SEMICOLON
+    | CONSTANT TYPE ptr_modifier ID ASSIGN_OP expr SEMICOLON
+    | TYPE ID ASSIGN_OP expr QUESTION expr COLON expr SEMICOLON
+    | TYPE ptr_modifier ID ASSIGN_OP expr QUESTION expr COLON expr SEMICOLON
+    | CONSTANT TYPE ID ASSIGN_OP expr QUESTION expr COLON expr SEMICOLON
+    | CONSTANT TYPE ptr_modifier ID ASSIGN_OP expr QUESTION expr COLON expr SEMICOLON
+
+ptr_modifier::=
+    ptr_modifier DEREF
+    | DEREF
+
+decl_func_stmt::=
+    TYPE ID L_BRACKET params R_BRACKET block
+    | TYPE ID L_BRACKET params R_BRACKET SEMICOLON
+
+params::=
+    params_list
+    | /* empty */
+
+params_list::=
+    params_list COMMA TYPE ID
+    | params_list COMMA TYPE ptr_modifier ID
+    | TYPE ID
+    | TYPE ptr_modifier ID
+
+block::=
+    BEGIN_BLOCK stmts END_BLOCK
+
+stmts::=
+    stmts stmt
+    | stmts ID COLON stmt
+    | /* empty */
+
+stmt::=
+    SEMICOLON
+    | decl_func_stmt
+    | decl_var_stmt
+    | assign_stmt
+    | if_stmt
+    | loop_stmt
+    | jump_stmt
+    | expr SEMICOLON
+
+if_stmt::=
+    IF L_BRACKET expr R_BRACKET block else_stmt
+
+else_stmt::=
+    ELSE block
+    | /* empty */
+
+loop_stmt::=
+    while_stmt
+    | do_while_stmt
+    | until_do_stmt
+    | repeat_until_stmt
+    | for_stmt
+
+while_stmt::=
+    WHILE L_BRACKET expr R_BRACKET block
+
+do_while_stmt::=
+    DO block WHILE L_BRACKET expr R_BRACKET SEMICOLON
+
+until_do_stmt::=
+    UNTIL L_BRACKET expr R_BRACKET block
+
+repeat_until_stmt::=
+    DO block UNTIL L_BRACKET expr R_BRACKET SEMICOLON
+
+for_stmt::=
+    FOR L_BRACKET expr SEMICOLON expr SEMICOLON expr R_BRACKET block
+    | FOR L_BRACKET decl_var_stmt expr SEMICOLON expr R_BRACKET block
+
+jump_stmt::=
+    break_stmt
+    | continue_stmt
+    | return_stmt
+    | goto_stmt
+
+break_stmt::=
+    BREAK SEMICOLON
+
+continue_stmt::=
+    CONTINUE SEMICOLON
+
+return_stmt::=
+    RETURN expr SEMICOLON
+    | RETURN SEMICOLON
+
+goto_stmt::=
+    GOTO ID SEMICOLON
+
+expr::=
+    ID
+    | INT_LITERAL
+    | BOOL_LITERAL
+    | STRING_LITERAL
+    | FLOAT_LITERAL
+    | L_BRACKET expr R_BRACKET
+    | assign_expr
+    | arithm_expr
+    | logic_expr
+    | compare_expr
+    | cast_expr
+    | call_func_expr
+    | memory_expr
+
+assign_expr::=
+    ID ASSIGN_OP expr
+    | ID ASSIGN_OP expr QUESTION expr COLON expr
+    | expr ASSIGN_OP expr
+    | expr ASSIGN_OP expr QUESTION expr COLON expr
+
+arithm_expr::=
+    expr SUM expr
+    | expr SUB expr
+    | expr MUL expr
+    | expr DIV expr
+    | expr MOD expr
+    | U_MINUS expr /* unary minus */
+
+logic_expr::=
+    expr AND expr
+    | expr OR expr
+    | NOT expr
+
+compare_expr::=
+    expr EQ expr
+    | expr NEQ expr
+    | expr LESS expr
+    | expr LESSEQ expr
+    | expr GRT expr
+    | expr GRTEQ expr
+
+cast_expr::=
+    L_BRACKET TYPE R_BRACKET expr
+
+call_func_expr::=
+    ID L_BRACKET args R_BRACKET
+
+args::=
+    args_list
+    | /* empty */
+
+args_list::=
+    args_list COMMA expr
+    | expr
+
+memory_expr::=
+    NEW L_BRACKET TYPE COMMA expr R_BRACKET
+    | DELETE expr
+    | DEREF expr
+    | REF ID
+    | SIZEOF L_BRACKET TYPE R_BRACKET

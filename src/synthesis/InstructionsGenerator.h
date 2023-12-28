@@ -7,6 +7,9 @@
 #include "AbstractSyntaxTree.h"
 #include "SymbolTable.h"
 
+/**
+ * Enum for instructions
+ */
 enum InstructionIndex {
     PL0_LIT = 0,
     PL0_OPR,
@@ -28,9 +31,12 @@ enum InstructionIndex {
     PL0_ITR,
     PL0_RTI,
     PL0_OPF,
-    PL0_NUM_OF_INSTRUCTIONS
+    PL0_NUM_OF_INSTRUCTIONS /* This is fine trick, but it is unused in this project :( */
 };
 
+/**
+ * Enum for different OPR parameters
+ */
 enum Oprs {
     PL0_NEG = 1,
     PL0_ADD,
@@ -47,6 +53,9 @@ enum Oprs {
     PL0_LEQ
 };
 
+/**
+ * Map for operators and their OPR parameters
+ */
 static const std::map<std::string, Oprs> OperatorsTable = {
     {"+", PL0_ADD},
     {"-", PL0_SUB},
@@ -61,6 +70,9 @@ static const std::map<std::string, Oprs> OperatorsTable = {
     {"<=", PL0_LEQ}
 };
 
+/**
+ * Map for instructions and their names
+ */
 static const char * const InstructionsTable[] = {
     [PL0_LIT] = "LIT",
     [PL0_OPR] = "OPR",
@@ -84,36 +96,81 @@ static const char * const InstructionsTable[] = {
     [PL0_OPF] = "OPF"
 };
 
+/**
+ * Struct for instruction
+ */
 typedef struct Instruction {
+    /** Line number */
     uint32_t line;
+    /** Instruction */
     std::string instruction;
+    /** Level */
     int level;
+    /** Parameter */
     int parameter;
 } Instruction;
 
+/**
+ * Class for instructions generation (PL/0 instructions)
+ * Inherits from ASTVisitor to traverse the AST
+ */
 class InstructionsGenerator : public ASTVisitor {
 private:
+    /** Root of the AST */
     ASTNodeBlock* global_block;
+    /** Used builtin functions */
     std::vector<std::string> used_builtin_functions;
+    /** Instructions */
     std::vector<Instruction> instructions;
+    /** Instruction counter */
     uint32_t instruction_counter;
+    /** Symbol table */
     SymbolTable symtab;
+    /** Map for declared functions */
     std::map<std::string, int> declared_functions;
+    /** Stack for break statements */
     std::vector<uint32_t> break_stack;
+    /** Stack for continue statements */
     std::vector<uint32_t> continue_stack;
+    /** Stack for parameters sizes */
     std::vector<uint32_t> sizeof_params_stack;
+    /** Stack for return type sizes */
     std::vector<uint32_t> sizeof_return_type_stack;
+    /** Stack for arguments sizes */
     std::vector<uint32_t> sizeof_arguments_stack;
+    /** Map for labels and their line numbers */
     std::map<std::string, uint32_t> labels_to_line;
+    /** Map for goto instructions and their line numbers */
     std::map<std::string, uint32_t> goto_labels_line;
+    /** Array of strings flag */
     bool is_array_of_strings = false;
 
+    /**
+     * Generate instruction
+     * @param instruction String instruction
+     * @param level Level
+     * @param parameter Parameter
+     */
     void generate(const std::string &instruction, int level, int parameter);
+    /**
+     * Generate instruction
+     * @param instruction InstructionIndex instruction
+     * @param level Level
+     * @param parameter Parameter
+     */
     void generate(InstructionIndex instruction, int level, int parameter);
 
+    /**
+     * Register label
+     * @param node AST node with label to be registered
+     */
     void register_label(ASTNodeStatement *node);
 
+    /**
+     * Generate instructions for builtin functions
+     */
     void init_builtin_functions();
+    /* Builtin functions */
     void gen_print_int();
     void gen_read_int();
     void gen_print_string();
@@ -124,18 +181,46 @@ private:
     void gen_print_float();
     void gen_read_float();
 
+    /**
+     * Get instruction
+     * @param index Index of the instruction
+     * @return Instruction
+     */
     [[nodiscard]] Instruction &get_instruction(std::uint32_t index);
-
+    /**
+     * Get instruction counter
+     * @return Instruction counter
+     */
     [[nodiscard]] std::uint32_t get_instruction_counter() const;
+    /**
+     * Set instruction counter
+     * @param counter Instruction counter
+     */
     void set_instruction_counter(std::uint32_t counter);
 
 public:
+    /**
+     * Constructor
+     * @param global_block Root of the AST
+     * @param used_builtin_functions Used builtin functions
+     */
     InstructionsGenerator(ASTNodeBlock* global_block, std::vector<std::string> &used_builtin_functions);
+    /**
+     * Destructor
+     */
     ~InstructionsGenerator() override;
 
+    /**
+     * Generate instructions
+     */
     void generate();
+    /**
+     * Get instructions
+     * @return Instructions
+     */
     [[nodiscard]] std::vector<Instruction> &get_instructions();
 
+    /* ASTVisitor methods */
     void visit(ASTNodeBlock *node) override;
     void visit(ASTNodeDeclVar *node) override;
     void visit(ASTNodeDeclFunc *node) override;

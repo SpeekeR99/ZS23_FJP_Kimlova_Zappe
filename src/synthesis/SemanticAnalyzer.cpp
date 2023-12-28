@@ -1,8 +1,9 @@
 #include "SemanticAnalyzer.h"
 
-SemanticAnalyzer::SemanticAnalyzer(ASTNodeBlock *global_block) : global_block(global_block), symtab(),
-                                                                 declared_functions(), problematic_forward_referenced_functions(), assigned_constants(),
-                                                                 current_functions(), current_loop_level(0), used_builtin_functions(), declared_labels(), used_labels() {
+SemanticAnalyzer::SemanticAnalyzer(ASTNodeBlock *global_block) : global_block(global_block), symtab(), declared_functions(),
+                                                                 problematic_forward_referenced_functions(), assigned_constants(),
+                                                                 current_functions(), current_loop_level(0), used_builtin_functions(),
+                                                                 declared_labels(), used_labels() {
     /* Empty */
 }
 
@@ -178,6 +179,8 @@ void SemanticAnalyzer::visit(ASTNodeDeclVar *node) {
         this->defined_variables[node->name] = true;
         this->assigned_constants[node->name] = true;
 
+        check_expr_type(symbol.type, node->expression, node->line);
+
         node->expression->accept(this);
 
         bool is_rvalue_ptr = false;
@@ -212,8 +215,6 @@ void SemanticAnalyzer::visit(ASTNodeDeclVar *node) {
     else {
         this->assigned_constants[node->name] = false;
     }
-
-    check_expr_type(symbol.type, node->expression, node->line);
 }
 
 void SemanticAnalyzer::visit(ASTNodeDeclFunc *node) {

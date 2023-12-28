@@ -9,6 +9,7 @@ void Optimizer::optimize_ast(ASTNodeBlock *global_block) {
 }
 
 void Optimizer::optimize_instructions(std::vector<Instruction> &instructions) {
+    /* Remove middle steps of jumps leading to unconditional jumps */
     for (int i = 0; i < instructions.size(); i++) {
         auto &instruction = instructions[i];
 
@@ -22,10 +23,12 @@ void Optimizer::optimize_instructions(std::vector<Instruction> &instructions) {
         }
     }
 
+    /* Remove the instructions marked for deletion */
     instructions.erase(std::remove_if(instructions.begin(), instructions.end(), [](const Instruction &instruction) {
         return instruction.instruction == "DELETE";
     }), instructions.end());
 
+    /* Map old line numbers to new line numbers */
     int line = 0;
     std::map<int, int> old_new_map;
     for (auto &instruction: instructions) {
@@ -33,6 +36,7 @@ void Optimizer::optimize_instructions(std::vector<Instruction> &instructions) {
         instruction.line = line++;
     }
 
+    /* Fix the line numbers in the instructions */
     for (auto &instruction: instructions) {
         if (instruction.instruction == "JMP" || instruction.instruction == "JMC" || instruction.instruction == "CAL") {
             instruction.parameter = old_new_map[instruction.parameter];
@@ -127,7 +131,7 @@ void Optimizer::visit(ASTNodeTernaryOperator *node) {
     node->false_expression->accept(this);
 }
 
-void modify_ast_parent_child(ASTNode *node, ASTNode *parent, ASTNodeExpression *new_child) {
+void Optimizer::modify_ast_parent_child(ASTNode *node, ASTNode *parent, ASTNodeExpression *new_child) {
     if (auto statement_parent = dynamic_cast<ASTNodeExpressionStatement *>(parent)) {
         statement_parent->expression = new_child;
         new_child->parent = statement_parent;
@@ -183,13 +187,16 @@ void modify_ast_parent_child(ASTNode *node, ASTNode *parent, ASTNodeExpression *
 }
 
 template<typename T>
-void binary_op_check_case(Optimizer *_this_, ASTNodeBinaryOperator *node, ASTNode *node_to_check, int value_to_check, ASTNodeExpression *node_to_set) {
+void Optimizer::binary_op_check_case(ASTNodeBinaryOperator *node, ASTNode *node_to_check, int value_to_check, ASTNodeExpression *node_to_set) {
+    /* If node_to_check is of type T */
     if (auto node_to_check_t = dynamic_cast<T *>(node_to_check)) {
+        /* and if it has the value value_to_check */
         if (node_to_check_t->value == value_to_check) {
+            /* then replace node with node_to_set */
             auto parent = node->parent;
             if (parent) {
                 modify_ast_parent_child(node, parent, node_to_set);
-                parent->accept(_this_);
+                parent->accept(this);
             }
         }
     }
@@ -199,29 +206,29 @@ void Optimizer::visit(ASTNodeBinaryOperator *node) {
     node->left->accept(this);
     node->right->accept(this);
     if (node->op == "+" || node->op == "-") {
-        binary_op_check_case<ASTNodeIntLiteral>(this, node, node->left, 0, node->right);
-        binary_op_check_case<ASTNodeIntLiteral>(this, node, node->right, 0, node->left);
-        binary_op_check_case<ASTNodeFloatLiteral>(this, node, node->left, 0, node->right);
-        binary_op_check_case<ASTNodeFloatLiteral>(this, node, node->right, 0, node->left);
+        binary_op_check_case<ASTNodeIntLiteral>(node, node->left, 0, node->right);
+        binary_op_check_case<ASTNodeIntLiteral>(node, node->right, 0, node->left);
+        binary_op_check_case<ASTNodeFloatLiteral>(node, node->left, 0, node->right);
+        binary_op_check_case<ASTNodeFloatLiteral>(node, node->right, 0, node->left);
     } else if (node->op == "*" || node->op == "/") {
-        binary_op_check_case<ASTNodeIntLiteral>(this, node, node->left, 0, node->left);
-        binary_op_check_case<ASTNodeIntLiteral>(this, node, node->right, 0, node->right);
-        binary_op_check_case<ASTNodeFloatLiteral>(this, node, node->left, 0, node->left);
-        binary_op_check_case<ASTNodeFloatLiteral>(this, node, node->right, 0, node->right);
-        binary_op_check_case<ASTNodeIntLiteral>(this, node, node->left, 1, node->right);
-        binary_op_check_case<ASTNodeIntLiteral>(this, node, node->right, 1, node->left);
-        binary_op_check_case<ASTNodeFloatLiteral>(this, node, node->left, 1, node->right);
-        binary_op_check_case<ASTNodeFloatLiteral>(this, node, node->right, 1, node->left);
+        binary_op_check_case<ASTNodeIntLiteral>(node, node->left, 0, node->left);
+        binary_op_check_case<ASTNodeIntLiteral>(node, node->right, 0, node->right);
+        binary_op_check_case<ASTNodeFloatLiteral>(node, node->left, 0, node->left);
+        binary_op_check_case<ASTNodeFloatLiteral>(node, node->right, 0, node->right);
+        binary_op_check_case<ASTNodeIntLiteral>(node, node->left, 1, node->right);
+        binary_op_check_case<ASTNodeIntLiteral>(node, node->right, 1, node->left);
+        binary_op_check_case<ASTNodeFloatLiteral>(node, node->left, 1, node->right);
+        binary_op_check_case<ASTNodeFloatLiteral>(node, node->right, 1, node->left);
     } else if (node->op == "&&") {
-        binary_op_check_case<ASTNodeBoolLiteral>(this, node, node->left, false, node->left);
-        binary_op_check_case<ASTNodeBoolLiteral>(this, node, node->right, false, node->right);
-        binary_op_check_case<ASTNodeBoolLiteral>(this, node, node->left, true, node->right);
-        binary_op_check_case<ASTNodeBoolLiteral>(this, node, node->right, true, node->left);
+        binary_op_check_case<ASTNodeBoolLiteral>(node, node->left, false, node->left);
+        binary_op_check_case<ASTNodeBoolLiteral>(node, node->right, false, node->right);
+        binary_op_check_case<ASTNodeBoolLiteral>(node, node->left, true, node->right);
+        binary_op_check_case<ASTNodeBoolLiteral>(node, node->right, true, node->left);
     } else if (node->op == "||") {
-        binary_op_check_case<ASTNodeBoolLiteral>(this, node, node->left, false, node->right);
-        binary_op_check_case<ASTNodeBoolLiteral>(this, node, node->right, false, node->left);
-        binary_op_check_case<ASTNodeBoolLiteral>(this, node, node->left, true, node->left);
-        binary_op_check_case<ASTNodeBoolLiteral>(this, node, node->right, true, node->right);
+        binary_op_check_case<ASTNodeBoolLiteral>(node, node->left, false, node->right);
+        binary_op_check_case<ASTNodeBoolLiteral>(node, node->right, false, node->left);
+        binary_op_check_case<ASTNodeBoolLiteral>(node, node->left, true, node->left);
+        binary_op_check_case<ASTNodeBoolLiteral>(node, node->right, true, node->right);
     }
 }
 

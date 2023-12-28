@@ -1,10 +1,9 @@
 #include "InstructionsGenerator.h"
 
-InstructionsGenerator::InstructionsGenerator(ASTNodeBlock *global_block, std::vector<std::string> &used_builtin_functions) : global_block(global_block), used_builtin_functions(used_builtin_functions), instructions(),
-                                                                           instruction_counter(0), symtab(),
-                                                                           declared_functions(), break_stack(),
-                                                                           continue_stack(), sizeof_params_stack(), sizeof_return_type_stack(), sizeof_arguments_stack(),
-                                                                           labels_to_line(), goto_labels_line() {
+InstructionsGenerator::InstructionsGenerator(ASTNodeBlock *global_block, std::vector<std::string> &used_builtin_functions) :
+    global_block(global_block), used_builtin_functions(used_builtin_functions), instructions(), instruction_counter(0), symtab(),
+    declared_functions(), break_stack(), continue_stack(), sizeof_params_stack(), sizeof_return_type_stack(), sizeof_arguments_stack(),
+    labels_to_line(), goto_labels_line() {
     /* Empty */
 }
 
