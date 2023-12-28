@@ -182,161 +182,46 @@ void modify_ast_parent_child(ASTNode *node, ASTNode *parent, ASTNodeExpression *
     }
 }
 
+template<typename T>
+void binary_op_check_case(Optimizer *_this_, ASTNodeBinaryOperator *node, ASTNode *node_to_check, int value_to_check, ASTNodeExpression *node_to_set) {
+    if (auto node_to_check_t = dynamic_cast<T *>(node_to_check)) {
+        if (node_to_check_t->value == value_to_check) {
+            auto parent = node->parent;
+            if (parent) {
+                modify_ast_parent_child(node, parent, node_to_set);
+                parent->accept(_this_);
+            }
+        }
+    }
+}
+
 void Optimizer::visit(ASTNodeBinaryOperator *node) {
     node->left->accept(this);
     node->right->accept(this);
     if (node->op == "+" || node->op == "-") {
-        if (auto left_lit_i = dynamic_cast<ASTNodeIntLiteral *>(node->left)) {
-            if (left_lit_i->value == 0) {
-                auto parent = node->parent;
-                if (parent) {
-                    modify_ast_parent_child(node, parent, node->right);
-                    parent->accept(this);
-                }
-            }
-        } else if (auto right_lit_i = dynamic_cast<ASTNodeIntLiteral *>(node->right)) {
-            if (right_lit_i->value == 0) {
-                auto parent = node->parent;
-                if (parent) {
-                    modify_ast_parent_child(node, parent, node->left);
-                    parent->accept(this);
-                }
-            }
-        } else if (auto left_lit_f = dynamic_cast<ASTNodeFloatLiteral *>(node->left)) {
-            if (left_lit_f->value == 0) {
-                auto parent = node->parent;
-                if (parent) {
-                    modify_ast_parent_child(node, parent, node->right);
-                    parent->accept(this);
-                }
-            }
-        } else if (auto right_lit_f = dynamic_cast<ASTNodeFloatLiteral *>(node->right)) {
-            if (right_lit_f->value == 0) {
-                auto parent = node->parent;
-                if (parent) {
-                    modify_ast_parent_child(node, parent, node->left);
-                    parent->accept(this);
-                }
-            }
-        }
+        binary_op_check_case<ASTNodeIntLiteral>(this, node, node->left, 0, node->right);
+        binary_op_check_case<ASTNodeIntLiteral>(this, node, node->right, 0, node->left);
+        binary_op_check_case<ASTNodeFloatLiteral>(this, node, node->left, 0, node->right);
+        binary_op_check_case<ASTNodeFloatLiteral>(this, node, node->right, 0, node->left);
     } else if (node->op == "*" || node->op == "/") {
-        if (auto left_lit_i = dynamic_cast<ASTNodeIntLiteral *>(node->left)) {
-            if (left_lit_i->value == 0) {
-                auto parent = node->parent;
-                if (parent) {
-                    modify_ast_parent_child(node, parent, left_lit_i);
-                    parent->accept(this);
-                }
-            } else if (left_lit_i->value == 1) {
-                auto parent = node->parent;
-                if (parent) {
-                    modify_ast_parent_child(node, parent, node->right);
-                    parent->accept(this);
-                }
-            }
-        } else if (auto right_lit_i = dynamic_cast<ASTNodeIntLiteral *>(node->right)) {
-            if (right_lit_i->value == 0) {
-                auto parent = node->parent;
-                if (parent) {
-                    parent->accept(this);
-                    modify_ast_parent_child(node, parent, right_lit_i);
-                }
-            } else if (right_lit_i->value == 1) {
-                auto parent = node->parent;
-                if (parent) {
-                    modify_ast_parent_child(node, parent, node->left);
-                    parent->accept(this);
-                }
-            }
-        } else if (auto left_lit_f = dynamic_cast<ASTNodeFloatLiteral *>(node->left)) {
-            if (left_lit_f->value == 0) {
-                auto parent = node->parent;
-                if (parent) {
-                    modify_ast_parent_child(node, parent, left_lit_f);
-                    parent->accept(this);
-                }
-            } else if (left_lit_f->value == 1) {
-                auto parent = node->parent;
-                if (parent) {
-                    modify_ast_parent_child(node, parent, node->right);
-                    parent->accept(this);
-                }
-            }
-        } else if (auto right_lit_f = dynamic_cast<ASTNodeFloatLiteral *>(node->right)) {
-            if (right_lit_f->value == 0) {
-                auto parent = node->parent;
-                if (parent) {
-                    modify_ast_parent_child(node, parent, right_lit_f);
-                    parent->accept(this);
-                }
-            } else if (right_lit_f->value == 1) {
-                auto parent = node->parent;
-                if (parent) {
-                    modify_ast_parent_child(node, parent, node->left);
-                    parent->accept(this);
-                }
-            }
-        }
+        binary_op_check_case<ASTNodeIntLiteral>(this, node, node->left, 0, node->left);
+        binary_op_check_case<ASTNodeIntLiteral>(this, node, node->right, 0, node->right);
+        binary_op_check_case<ASTNodeFloatLiteral>(this, node, node->left, 0, node->left);
+        binary_op_check_case<ASTNodeFloatLiteral>(this, node, node->right, 0, node->right);
+        binary_op_check_case<ASTNodeIntLiteral>(this, node, node->left, 1, node->right);
+        binary_op_check_case<ASTNodeIntLiteral>(this, node, node->right, 1, node->left);
+        binary_op_check_case<ASTNodeFloatLiteral>(this, node, node->left, 1, node->right);
+        binary_op_check_case<ASTNodeFloatLiteral>(this, node, node->right, 1, node->left);
     } else if (node->op == "&&") {
-        if (auto left_lit_b = dynamic_cast<ASTNodeBoolLiteral *>(node->left)) {
-            if (!left_lit_b->value) {
-                auto parent = node->parent;
-                if (parent) {
-                    modify_ast_parent_child(node, parent, left_lit_b);
-                    parent->accept(this);
-                }
-            } else {
-                auto parent = node->parent;
-                if (parent) {
-                    modify_ast_parent_child(node, parent, node->right);
-                    parent->accept(this);
-                }
-            }
-        } else if (auto right_lit_b = dynamic_cast<ASTNodeBoolLiteral *>(node->right)) {
-            if (!right_lit_b->value) {
-                auto parent = node->parent;
-                if (parent) {
-                    modify_ast_parent_child(node, parent, right_lit_b);
-                    parent->accept(this);
-                }
-            } else {
-                auto parent = node->parent;
-                if (parent) {
-                    modify_ast_parent_child(node, parent, node->left);
-                    parent->accept(this);
-                }
-            }
-        }
+        binary_op_check_case<ASTNodeBoolLiteral>(this, node, node->left, false, node->left);
+        binary_op_check_case<ASTNodeBoolLiteral>(this, node, node->right, false, node->right);
+        binary_op_check_case<ASTNodeBoolLiteral>(this, node, node->left, true, node->right);
+        binary_op_check_case<ASTNodeBoolLiteral>(this, node, node->right, true, node->left);
     } else if (node->op == "||") {
-        if (auto left_lit_b = dynamic_cast<ASTNodeBoolLiteral *>(node->left)) {
-            if (left_lit_b->value) {
-                auto parent = node->parent;
-                if (parent) {
-                    modify_ast_parent_child(node, parent, left_lit_b);
-                    parent->accept(this);
-                }
-            } else {
-                auto parent = node->parent;
-                if (parent) {
-                    modify_ast_parent_child(node, parent, node->right);
-                    parent->accept(this);
-                }
-            }
-        } else if (auto right_lit_b = dynamic_cast<ASTNodeBoolLiteral *>(node->right)) {
-            if (right_lit_b->value) {
-                auto parent = node->parent;
-                if (parent) {
-                    modify_ast_parent_child(node, parent, right_lit_b);
-                    parent->accept(this);
-                }
-            } else {
-                auto parent = node->parent;
-                if (parent) {
-                    modify_ast_parent_child(node, parent, node->left);
-                    parent->accept(this);
-                }
-            }
-        }
+        binary_op_check_case<ASTNodeBoolLiteral>(this, node, node->left, false, node->right);
+        binary_op_check_case<ASTNodeBoolLiteral>(this, node, node->right, false, node->left);
+        binary_op_check_case<ASTNodeBoolLiteral>(this, node, node->left, true, node->left);
+        binary_op_check_case<ASTNodeBoolLiteral>(this, node, node->right, true, node->right);
     }
 }
 
