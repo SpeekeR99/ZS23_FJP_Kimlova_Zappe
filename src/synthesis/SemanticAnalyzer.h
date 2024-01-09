@@ -48,6 +48,17 @@ private:
      */
     void check_expr_type(Type type, ASTNodeExpression *expr, int line, bool is_assignment_check = true);
 
+    /**
+     * Checks if an argument has the same type as a parameter (only for literals)
+     * @tparam T ASTNodeLiteral type
+     * @param argument Argument to check
+     * @param parameter Parameter to check
+     * @param type Type to check
+     * @param line Line number for error reporting
+     */
+    template<typename T>
+    void func_call_lit_arg_type_check(ASTNodeExpression *argument, struct SymbolTableRecord &parameter, Type &type, int line);
+
 public:
     /**
      * Constructor

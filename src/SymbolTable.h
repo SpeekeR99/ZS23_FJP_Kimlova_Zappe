@@ -29,6 +29,13 @@ enum ValueType {
 ValueType str_to_val_type(const std::string &str);
 
 /**
+ * Converts ValueType to string
+ * @param type ValueType to convert
+ * @return string
+ */
+std::string val_type_to_str(ValueType type);
+
+/**
  * Enum representing size of value types
  */
 enum ValueTypeSize {

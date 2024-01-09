@@ -514,6 +514,16 @@ void SemanticAnalyzer::visit(ASTNodeCast *node) {
     node->expression->accept(this);
 }
 
+template<typename T>
+void SemanticAnalyzer::func_call_lit_arg_type_check(ASTNodeExpression *argument, struct SymbolTableRecord &parameter, Type &type, int line) {
+    if (dynamic_cast<T *>(argument)) {
+        if (parameter.type.type != type.type) {
+            std::cerr << "Semantic error: function expects " << val_type_to_str(parameter.type.type) << " argument, " << val_type_to_str(type.type) << " given, error on line " << line << std::endl;
+            exit(1);
+        }
+    }
+}
+
 void SemanticAnalyzer::visit(ASTNodeCallFunc *node) {
     auto &symbol = this->symtab.get_symbol(node->name);
 
@@ -531,6 +541,36 @@ void SemanticAnalyzer::visit(ASTNodeCallFunc *node) {
         std::cerr << "Semantic error: function \"" << node->name << "\" expects " << symbol.parameters.size() << " arguments, " << node->arguments.size() << " given, error on line " << node->line << std::endl;
         exit(1);
     }
+
+    /* Type check arguments */
+    for (int i = 0; i < node->arguments.size(); i++) {
+        auto &argument = node->arguments[i];
+        auto &parameter = symbol.parameters[i];
+
+        func_call_lit_arg_type_check<ASTNodeIntLiteral>(argument, parameter, int_t, node->line);
+        func_call_lit_arg_type_check<ASTNodeBoolLiteral>(argument, parameter, bool_t, node->line);
+        func_call_lit_arg_type_check<ASTNodeFloatLiteral>(argument, parameter, float_t, node->line);
+        func_call_lit_arg_type_check<ASTNodeStringLiteral>(argument, parameter, string_t, node->line);
+
+        if (auto id = dynamic_cast<ASTNodeIdentifier *>(argument)) {
+            auto &id_symbol = this->symtab.get_symbol(id->name);
+            if (id_symbol.type.type != parameter.type.type) {
+                std::cerr << "Semantic error: function expects " << val_type_to_str(parameter.type.type) << " argument, " << val_type_to_str(id_symbol.type.type) << " given, error on line " << node->line << std::endl;
+                exit(1);
+            }
+        }
+
+        if (auto call_func = dynamic_cast<ASTNodeCallFunc *>(argument)) {
+            auto &call_func_symbol = this->symtab.get_symbol(call_func->name);
+            if (call_func_symbol.type.type != parameter.type.type) {
+                std::cerr << "Semantic error: function expects " << val_type_to_str(parameter.type.type) << " argument, " << val_type_to_str(call_func_symbol.type.type) << " given, error on line " << node->line << std::endl;
+                exit(1);
+            }
+        }
+    }
+
+    for (auto &argument: node->arguments)
+        argument->accept(this);
 
     if (!this->declared_functions[node->name])
         problematic_forward_referenced_functions[node->name] = node->line;

@@ -28,6 +28,22 @@ ValueType str_to_val_type(const std::string &str) {
     }
 }
 
+std::string val_type_to_str(ValueType type) {
+    if (type == VOID)
+        return "void";
+    else if (type == INTEGER)
+        return "int";
+    else if (type == BOOLEAN)
+        return "bool";
+    else if (type == STRING)
+        return "string";
+    else if (type == FLOAT)
+        return "float";
+    else {
+        return "undefined";
+    }
+}
+
 int sizeof_val_type(ValueType type) {
     if (type == VOID)
         return VOID_SIZE;
