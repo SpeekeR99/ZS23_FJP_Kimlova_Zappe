@@ -8,7 +8,7 @@ int main() {
     bool ^bool_pointer = @boolean;
     /* WARNING: float pointers are not supported! Read docs for more info */
     /* float ^float_pointer = @real_number; */
-    string ^text_array = new string[2];
+    string ^text_array = new (string, 2);
 
     return 0;
 }
