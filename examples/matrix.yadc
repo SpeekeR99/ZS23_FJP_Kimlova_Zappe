@@ -1,0 +1,25 @@
+/* 2D array example */
+
+int main() {
+    int ^inner_0 = new(int, 3);
+    ^(inner_0) = 1;
+    ^(inner_0 + 1) = 2;
+    ^(inner_0 + 2) = 3;
+    int ^inner_1 = new(int, 3);
+    ^(inner_1) = 4;
+    ^(inner_1 + 1) = 5;
+    ^(inner_1 + 2) = 6;
+    int ^inner_2 = new(int, 3);
+    ^(inner_2) = 7;
+    ^(inner_2 + 1) = 8;
+    ^(inner_2 + 2) = 9;
+
+    int ^^outer = new(int, 3);
+    ^(outer) = inner_0;
+    ^(outer + 1) = inner_1;
+    ^(outer + 2) = inner_2;
+
+    ^((^(outer + 1)) + 1) = 10;      /* outer[1][1] = 10 */
+
+    return 0;
+}
